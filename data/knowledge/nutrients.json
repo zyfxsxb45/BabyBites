@@ -1,0 +1,118 @@
+{
+  "_schema_version": "1.0",
+  "_description": "关键营养素及其在婴儿辅食中的作用。",
+  "_source": "WHO/FAO营养素参考值、Codex Stan 74、USDA FoodData",
+
+  "铁": {
+    "id": "nutrient_iron",
+    "name_zh": "铁",
+    "name_en": "iron",
+    "unit": "mg",
+    "category": "矿物质",
+    "importance_zh": "6月龄后体内铁储备耗尽，铁是辅食第一优先级的营养素",
+    "daily_needs": {
+      "stage_6_8": 11,
+      "stage_9_11": 11,
+      "stage_12_plus": 7
+    },
+    "rich_sources": ["猪肝", "牛肉", "高铁米粉", "菠菜"],
+    "deficiency_risk": "缺铁性贫血，影响认知发育",
+    "special_notes": "动物来源（血红素铁）吸收率远高于植物来源。搭配维生素C可促进植物铁吸收。"
+  },
+  "锌": {
+    "id": "nutrient_zinc",
+    "name_zh": "锌",
+    "name_en": "zinc",
+    "unit": "mg",
+    "category": "矿物质",
+    "importance_zh": "参与免疫功能和生长发育",
+    "daily_needs": {
+      "stage_6_8": 3,
+      "stage_9_11": 3,
+      "stage_12_plus": 3
+    },
+    "rich_sources": ["猪肝", "牛肉", "鸡肉"],
+    "deficiency_risk": "生长迟缓、食欲减退",
+    "special_notes": ""
+  },
+  "钙": {
+    "id": "nutrient_calcium",
+    "name_zh": "钙",
+    "name_en": "calcium",
+    "unit": "mg",
+    "category": "矿物质",
+    "importance_zh": "骨骼和牙齿发育的关键营养素",
+    "daily_needs": {
+      "stage_6_8": 260,
+      "stage_9_11": 260,
+      "stage_12_plus": 700
+    },
+    "rich_sources": ["酸奶", "豆腐", "菠菜"],
+    "deficiency_risk": "骨骼发育不良",
+    "special_notes": "12月龄前钙主要来源于母乳/配方奶，辅食为补充"
+  },
+  "维生素D": {
+    "id": "nutrient_vitd",
+    "name_zh": "维生素D",
+    "name_en": "vitamin D",
+    "unit": "IU",
+    "category": "维生素",
+    "importance_zh": "促进钙吸收，纯母乳喂养儿需额外补充",
+    "daily_needs": {
+      "stage_6_8": 400,
+      "stage_9_11": 400,
+      "stage_12_plus": 600
+    },
+    "rich_sources": ["鸡蛋", "三文鱼", "配方奶(强化)"],
+    "deficiency_risk": "佝偻病",
+    "special_notes": "食物来源有限，纯母乳喂养儿通常需补充剂（每天400IU）"
+  },
+  "DHA": {
+    "id": "nutrient_dha",
+    "name_zh": "DHA",
+    "name_en": "DHA (Docosahexaenoic Acid)",
+    "unit": "mg",
+    "category": "脂肪酸",
+    "importance_zh": "脑发育和视觉发育的关键营养素",
+    "daily_needs": {
+      "stage_6_8": 100,
+      "stage_9_11": 100,
+      "stage_12_plus": 100
+    },
+    "rich_sources": ["三文鱼", "鳕鱼", "蛋黄", "DHA强化配方奶"],
+    "deficiency_risk": "神经系统发育受影响",
+    "special_notes": ""
+  },
+  "蛋白质": {
+    "id": "nutrient_protein",
+    "name_zh": "蛋白质",
+    "name_en": "protein",
+    "unit": "g",
+    "category": "宏量营养素",
+    "importance_zh": "身体组织和肌肉生长的基本物质",
+    "daily_needs": {
+      "stage_6_8": 9,
+      "stage_9_11": 11,
+      "stage_12_plus": 13
+    },
+    "rich_sources": ["猪肝", "鸡蛋", "三文鱼", "豆腐"],
+    "deficiency_risk": "生长迟缓，肌肉发育不良",
+    "special_notes": "通常通过正常辅食摄入即可满足，不需要特别补充"
+  },
+  "维生素C": {
+    "id": "nutrient_vitc",
+    "name_zh": "维生素C",
+    "name_en": "vitamin C",
+    "unit": "mg",
+    "category": "维生素",
+    "importance_zh": "增强免疫、促进铁吸收",
+    "daily_needs": {
+      "stage_6_8": 50,
+      "stage_9_11": 50,
+      "stage_12_plus": 15
+    },
+    "rich_sources": ["西兰花", "奇异果", "橙", "菠菜"],
+    "deficiency_risk": "坏血病（罕见）",
+    "special_notes": "与含铁食物同食可显著增加铁吸收率"
+  }
+}

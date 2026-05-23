@@ -1,0 +1,31 @@
+# 宝宝巴适 Python 依赖
+
+# ===== Web 框架 =====
+streamlit>=1.30
+
+# ===== 数据处理 =====
+pandas>=2.0
+numpy>=1.24
+
+# ===== LLM API =====
+openai>=1.0
+
+# ===== 数据库 =====
+# SQLite 由 Python 标准库自带，无需额外安装
+
+# ===== Neo4j 图数据库（可选，双轨制第二条轨道）=====
+# 如果不走 Neo4j 路线，以下两行可注释
+neo4j>=5.0
+py2neo>=2021.2
+
+# ===== 开发与测试 =====
+pytest>=7.0
+pytest-cov
+
+# ===== 工具 =====
+python-dotenv>=1.0
+requests>=2.28
+pyyaml>=6.0
+
+# ===== 可选：向量检索（后期 RAG 补充层）=====
+# chromadb>=0.4

@@ -1,0 +1,85 @@
+{
+  "_schema_version": "1.0",
+  "_description": "常见过敏原及其别名映射。用于配料表解析时识别隐藏过敏原。",
+  "_source": "CDC指南、Codex Stan 国际过敏原列表",
+
+  "鸡蛋": {
+    "id": "allergen_001",
+    "category": "八大过敏原",
+    "aliases": ["鸡蛋", "蛋", "egg", "eggs", "albumin", "卵白蛋白", "蛋白", "蛋黄"],
+    "cross_reactive": ["鸭蛋", "鹌鹑蛋"],
+    "hidden_sources": ["蛋糕", "蛋羹", "含蛋面条", "蛋黄酱", "某些面包"],
+    "notes_zh": "部分疫苗（流感疫苗）含微量蛋蛋白，需告知医生过敏史",
+    "severity": "high"
+  },
+
+  "牛奶": {
+    "id": "allergen_002",
+    "category": "八大过敏原",
+    "aliases": ["牛奶", "奶", "milk", "dairy", "whey", "lactose", "乳清", "乳糖", "酪蛋白", "casein", "乳清蛋白", "浓缩乳清蛋白"],
+    "cross_reactive": ["羊奶"],
+    "hidden_sources": ["含乳饮料", "奶油", "奶酪", "配方奶粉", "营养强化米粉(含乳)"],
+    "notes_zh": "牛奶蛋白过敏≠乳糖不耐受。前者是免疫反应，后者是消化问题。",
+    "severity": "high"
+  },
+
+  "花生": {
+    "id": "allergen_003",
+    "category": "八大过敏原",
+    "aliases": ["花生", "peanut", "groundnut", "arachis", "花生酱", "花生油(冷压)"],
+    "cross_reactive": ["大豆", "扁豆"],
+    "hidden_sources": ["某些膨化食品", "花生酱", "蛋白棒"],
+    "notes_zh": "6月龄后可尝试引入微量花生酱(稀释)，早期引入可能降低过敏风险",
+    "severity": "high"
+  },
+
+  "鱼类": {
+    "id": "allergen_004",
+    "category": "八大过敏原",
+    "aliases": ["鱼", "fish", "salmon", "cod", "tuna", "三文鱼", "鳕鱼", "金枪鱼", "鱼胶", "明胶"],
+    "cross_reactive": [],
+    "hidden_sources": ["鱼胶", "鱼油", "某些酱料"],
+    "notes_zh": "不同鱼种的交叉过敏不普遍，对三文鱼过敏不一定对鳕鱼过敏",
+    "severity": "medium"
+  },
+
+  "大豆": {
+    "id": "allergen_005",
+    "category": "八大过敏原",
+    "aliases": ["大豆", "黄豆", "soy", "soya", "soybean", "豆腐", "豆浆", "酱油", "卵磷脂(大豆来源)"],
+    "cross_reactive": ["花生", "扁豆"],
+    "hidden_sources": ["酱油", "豆腐", "豆奶", "大豆卵磷脂"],
+    "notes_zh": "大豆卵磷脂和精炼大豆油通常可耐受（蛋白含量极低），但需个案评估",
+    "severity": "medium"
+  },
+
+  "小麦": {
+    "id": "allergen_006",
+    "category": "八大过敏原",
+    "aliases": ["小麦", "wheat", "gluten", "面粉", "面筋", "麸质", "麦芽"],
+    "cross_reactive": ["大麦", "黑麦"],
+    "hidden_sources": ["面包", "面条", "饼干", "麦片", "酱油(部分)"],
+    "notes_zh": "注意与乳糜泻(coeliac)区分，小麦过敏≠麸质不耐受",
+    "severity": "medium"
+  },
+
+  "坚果": {
+    "id": "allergen_007",
+    "category": "八大过敏原",
+    "aliases": ["坚果", "杏仁", "核桃", "腰果", "榛子", "山核桃", "tree nut", "almond", "walnut", "cashew"],
+    "cross_reactive": [],
+    "hidden_sources": ["坚果酱", "坚果奶", "某些糕点点缀"],
+    "notes_zh": "树坚果(一类)≠花生(豆科)，需分别标注。6月龄后可尝试碾碎坚果酱。",
+    "severity": "high"
+  },
+
+  "芝麻": {
+    "id": "allergen_008",
+    "category": "其它主要过敏原",
+    "aliases": ["芝麻", "sesame", "芝麻酱", "香油", "麻油"],
+    "cross_reactive": [],
+    "hidden_sources": ["芝麻酱", "香油", "某些面包/糕点"],
+    "notes_zh": "欧美已列为主要过敏原（排名第九）。中国含芝麻的食物较多（麻酱、香油等）",
+    "severity": "medium"
+  }
+}

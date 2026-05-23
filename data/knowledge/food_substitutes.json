@@ -1,0 +1,38 @@
+{
+  "_schema_version": "1.0",
+  "_description": "对等替代食材。同一营养类别下可互换的选项，用于计划生成时的多样性替换。",
+  "_source": "自行整理，参考CDC指南和美国膳食指南",
+
+  "猪肝": {
+    "category": "高铁红肉",
+    "alternatives": [
+      {"food": "牛肝", "reason": "同为高铁内脏，铁含量相近"},
+      {"food": "牛肉泥", "reason": "同为红肉高铁来源"},
+      {"food": "鸡肝", "reason": "同为高铁内脏"}
+    ]
+  },
+  "三文鱼": {
+    "category": "高DHA鱼类",
+    "alternatives": [
+      {"food": "鳕鱼", "reason": "同为高DHA低汞鱼类"},
+      {"food": "带鱼", "reason": "同为高DHA海鱼"},
+      {"food": "鲈鱼", "reason": "同为婴儿推荐鱼类"}
+    ]
+  },
+  "鸡蛋": {
+    "category": "全蛋白来源",
+    "alternatives": [
+      {"food": "豆腐", "reason": "同为优质蛋白，适合鸡蛋过敏替代"},
+      {"food": "鹌鹑蛋", "reason": "同为蛋类蛋白来源"},
+      {"food": "鸡肉泥", "reason": "同为动物蛋白"}
+    ]
+  },
+  "菠菜": {
+    "category": "叶菜类",
+    "alternatives": [
+      {"food": "西兰花", "reason": "同为高维生素C蔬菜"},
+      {"food": "小油菜", "reason": "同为高钙叶菜"},
+      {"food": "小白菜", "reason": "同为婴儿适宜叶菜"}
+    ]
+  }
+}

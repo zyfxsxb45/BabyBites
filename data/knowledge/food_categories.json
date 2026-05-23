@@ -1,0 +1,66 @@
+{
+  "_schema_version": "1.0",
+  "_description": "食材分类体系。按食物组分类，用于营养多样性和计划生成中的归类。",
+  "_source": "CDC指南、USDA MyPlate",
+
+  "red_meat": {
+    "label": "红肉",
+    "includes": ["牛肉", "猪肉", "羊肉", "猪肝", "牛肝"],
+    "key_nutrients": ["铁", "锌", "蛋白质"],
+    "recommendation_zh": "首推铁含量高的红肉（尤其是内脏），是6月龄后最重要的铁来源"
+  },
+  "poultry": {
+    "label": "禽肉",
+    "includes": ["鸡肉", "鸭肉", "火鸡肉", "鸡肝"],
+    "key_nutrients": ["蛋白质", "铁"],
+    "recommendation_zh": "鸡肉泥是最常见的婴儿动物蛋白来源"
+  },
+  "fish": {
+    "label": "鱼类",
+    "includes": ["三文鱼", "鳕鱼", "带鱼", "鲈鱼"],
+    "key_nutrients": ["DHA", "蛋白质"],
+    "recommendation_zh": "每周1-2次，优先低汞鱼"
+  },
+  "eggs": {
+    "label": "蛋类",
+    "includes": ["鸡蛋", "鹌鹑蛋"],
+    "key_nutrients": ["蛋白质", "维生素D"],
+    "recommendation_zh": "可早期引入（6月龄），先蛋黄后蛋白"
+  },
+  "grains": {
+    "label": "谷物",
+    "includes": ["大米", "燕麦", "小米", "小麦", "玉米"],
+    "key_nutrients": ["碳水化合物", "B族维生素"],
+    "recommendation_zh": "高铁米粉是第一口辅食；燕麦小米可后续添加"
+  },
+  "vegetables": {
+    "label": "蔬菜",
+    "includes": ["菠菜", "胡萝卜", "南瓜", "西兰花", "番茄", "土豆"],
+    "key_nutrients": ["维生素C", "维生素A", "膳食纤维"],
+    "recommendation_zh": "从单一蔬菜泥开始，每样观察3-5天"
+  },
+  "fruits": {
+    "label": "水果",
+    "includes": ["苹果", "香蕉", "梨", "牛油果", "蓝莓"],
+    "key_nutrients": ["维生素C", "膳食纤维"],
+    "recommendation_zh": "不添加糖，直接研磨成泥"
+  },
+  "dairy": {
+    "label": "奶制品",
+    "includes": ["酸奶(6m+)", "原味酸奶(6m+)", "全脂牛奶(12m+)"],
+    "key_nutrients": ["钙", "蛋白质", "维生素D"],
+    "recommendation_zh": "12月龄前不直接饮用牛奶作替代品，但可用酸奶"
+  },
+  "legumes": {
+    "label": "豆类",
+    "includes": ["豆腐", "黄豆", "扁豆", "鹰嘴豆", "红小豆"],
+    "key_nutrients": ["蛋白质", "铁(植物)", "膳食纤维"],
+    "recommendation_zh": "豆腐是优质的植物蛋白来源，6月龄即可引入"
+  },
+  "nuts_seeds": {
+    "label": "坚果与种子",
+    "includes": ["花生酱", "杏仁酱", "核桃粉", "芝麻酱"],
+    "key_nutrients": ["健康脂肪", "维生素E"],
+    "recommendation_zh": "碾碎成酱/粉后引入，不要给整颗坚果"
+  }
+}

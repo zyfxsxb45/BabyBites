@@ -1,0 +1,27 @@
+{
+  "_schema_version": "1.0",
+  "_description": "食物质地等级定义，对应月龄阶段。",
+  "_source": "CDC When/What/How指南",
+
+  "puree": {
+    "id": "texture_puree",
+    "label": "泥糊状",
+    "age_range": "6-8月龄",
+    "description_zh": "单一食材蒸熟后捣泥或研磨至完全顺滑，无颗粒感",
+    "examples": ["猪肝泥", "胡萝卜泥", "苹果泥", "高铁米糊"]
+  },
+  "minced": {
+    "id": "texture_minced",
+    "label": "碎末状",
+    "age_range": "9-11月龄",
+    "description_zh": "食材剁成细碎颗粒或软条状，让宝宝可抓握练习咀嚼",
+    "examples": ["碎肉末粥", "软蔬菜条", "苹果薄片", "小块豆腐"]
+  },
+  "chunky": {
+    "id": "texture_chunky",
+    "label": "小块/家庭饮食",
+    "age_range": "12月龄以上",
+    "description_zh": "切小块的清淡家庭食物，少盐少糖，慢慢过渡到全家庭饮食",
+    "examples": ["肉丁炒饭(少油)", "蒸鱼块", "拌蔬菜", "全脂牛奶"]
+  }
+}

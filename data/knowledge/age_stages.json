@@ -1,0 +1,47 @@
+{
+  "_schema_version": "1.0",
+  "_description": "月龄阶段定义。每个阶段包含质地、单日餐次、关键营养素等。",
+  "_source": "CDC指南、WHO补充喂养原则、FSANZ 2.9.2",
+
+  "stage_6_8": {
+    "id": "stage_6_8",
+    "label": "吞咽期",
+    "age_range": "6-8月龄",
+    "texture": "泥糊状",
+    "meals_per_day": "2-3次",
+    "portion_per_meal_zh": "每次1-2汤匙起步，逐渐增加至半碗(约50-100g)",
+    "introduction_rule": "每次只引入一种新食材，观察3-5天无过敏反应后再引入下一种",
+    "key_nutrients": ["铁", "锌"],
+    "priority_food_types": ["高铁米粉", "红肉泥", "蔬菜泥", "水果泥"],
+    "strictly_avoid": ["蜂蜜", "牛奶(作为饮料)", "整颗坚果", "硬糖"],
+    "source": "CDC When/What/How指南 / WHO补充喂养原则"
+  },
+
+  "stage_9_11": {
+    "id": "stage_9_11",
+    "label": "咀嚼期",
+    "age_range": "9-11月龄",
+    "texture": "碎末状 / 指状食物",
+    "meals_per_day": "3-4次",
+    "portion_per_meal_zh": "每次半碗至一小碗(约100-150g)",
+    "introduction_rule": "继续引入新食材，注意观察过敏反应",
+    "key_nutrients": ["铁", "锌", "蛋白质"],
+    "priority_food_types": ["碎肉", "软蔬菜条", "软水果片", "全蛋", "豆腐"],
+    "strictly_avoid": ["蜂蜜", "整颗坚果", "硬糖", "整颗葡萄"],
+    "source": "CDC指南"
+  },
+
+  "stage_12_plus": {
+    "id": "stage_12_plus",
+    "label": "过渡家庭饮食期",
+    "age_range": "12月龄以上",
+    "texture": "小块/家庭饮食",
+    "meals_per_day": "3餐+2次加餐",
+    "portion_per_meal_zh": "每次一小碗(约150-200g)",
+    "introduction_rule": "大多数家庭食物可尝试，注意控盐控糖",
+    "key_nutrients": ["铁", "钙", "蛋白质", "维生素D"],
+    "priority_food_types": ["家庭饮食(少盐少糖)", "全脂牛奶(12m+可饮)", "多样蔬菜水果"],
+    "strictly_avoid": ["整颗坚果(碾碎可)", "爆米花", "大块硬食物"],
+    "source": "CDC指南 / USDA膳食指南"
+  }
+}
