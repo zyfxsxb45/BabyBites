@@ -20,6 +20,7 @@ from .safety_boundary import SafetyBoundaryAgent
 from .plan_generation import PlanGenerationAgent
 from .validation import ValidationAgent
 from .dialogue import DialogueAgent
+from .chat import ChatAgent
 
 __all__ = [
     "UserProfileAgent",
@@ -28,4 +29,5 @@ __all__ = [
     "PlanGenerationAgent",
     "ValidationAgent",
     "DialogueAgent",
+    "ChatAgent",
 ]

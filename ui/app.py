@@ -3,8 +3,6 @@
 
 启动方式：
     streamlit run ui/app.py
-
-当前为骨架版本，页面尚未连接实际智能体逻辑。
 """
 
 import streamlit as st
@@ -14,11 +12,24 @@ from pathlib import Path
 # 把项目根目录加入 path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.loader import init_kb
+from utils.loader import init_kb, init_llm
 
-# 全局共享：知识库实例
+# ===== 全局初始化（只执行一次）=====
+
 if "kb" not in st.session_state:
     st.session_state.kb = init_kb()
+
+if "llm" not in st.session_state:
+    st.session_state.llm = init_llm()
+
+if "chat_agent" not in st.session_state:
+    from agents.chat import ChatAgent
+    st.session_state.chat_agent = ChatAgent(
+        kb=st.session_state.kb,
+        llm=st.session_state.llm,
+    )
+
+# ===== 页面配置 =====
 
 st.set_page_config(
     page_title="宝宝巴适 BabyBites",
@@ -29,7 +40,8 @@ st.set_page_config(
 st.title("🍼 宝宝巴适 BabyBites")
 st.caption("AI 辅助 6–12 月龄婴儿辅食推荐与过敏预警系统")
 
-# 侧边栏：宝宝信息录入
+# ===== 侧边栏：宝宝信息录入 =====
+
 with st.sidebar:
     st.header("👶 宝宝信息")
     age_months = st.number_input("月龄", min_value=0, max_value=36, value=6)
@@ -47,8 +59,14 @@ with st.sidebar:
     st.divider()
     st.button("🔍 开始评估", type="primary", use_container_width=True)
 
-# 主区域：三个 Tab
-tab1, tab2, tab3 = st.tabs(["📋 安全评估", "📅 周度计划", "🔍 配料解析"])
+# ===== 主区域：四 Tab =====
+
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📋 安全评估",
+    "📅 周度计划",
+    "🔍 配料解析",
+    "💬 智能问答",
+])
 
 with tab1:
     st.info('输入宝宝信息后点击「开始评估」，查看阶段判断和安全标签')
@@ -72,6 +90,11 @@ with tab3:
         disabled=True,
     )
 
-# 底部
+with tab4:
+    from ui.pages.chat import render_chat_page
+    render_chat_page(st.session_state.chat_agent, kb=st.session_state.kb)
+
+# ===== 底部 =====
+
 st.divider()
 st.caption("© 2026 宝宝巴适 · 清华大学《人工智能导论》课程大作业")
