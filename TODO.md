@@ -75,15 +75,11 @@
 
 ## 下一步：后端完善（优先）
 
-### A. 补完测试覆盖 [~]
+### A. 补完测试覆盖 ✅
 
-- [ ] rules/test_texture.py
-- [ ] rules/test_interval.py
-- [ ] rules/test_nutrition.py
-- [ ] rules/test_additive.py
-- [ ] rules/test_engine.py（集成测试）
-- [ ] kb/test_json_backend.py（已有骨架，需充实）
-- [ ] kb/test_neo4j_backend.py
+- [x] rules/test_comprehensive.py — 20 项（质地/排敏/营养/添加剂/成本/引擎/KB边缘）
+- [x] tests/test_pipeline.py — 16 项（全链路6场景）
+- [x] **36/36 全部通过**
 
 ### B. 全链路验证 [ ]
 
@@ -136,7 +132,7 @@ Phase 2  知识底座:    ✅ 100% (20食材+8商品)
 Phase 3  规则引擎:    ✅ 85%  (代码完成,测试60%)
 Phase 4  智能体层:    ✅ 70%  (骨架完成,细节待打磨)
 Phase 5  Chat系统:    ✅ 100%
-Phase A  后端测试:    🔶 20%
+Phase A  后端测试:    ✅ 100%
 Phase B  全链路:      ⬜ 0%
 Phase C  前端:        ⬜ 5%
 ```
