@@ -82,7 +82,13 @@ class JSONKnowledgeBase:
     # ===== 食材查询 =====
 
     def get_food(self, food_id: str) -> Optional[dict]:
-        return self._foods.get(food_id)
+        # 先按key直查，再按内部id字段搜索
+        if food_id in self._foods:
+            return self._foods[food_id]
+        for food in self._foods.values():
+            if food.get("id") == food_id:
+                return food
+        return None
 
     def get_food_by_name(self, name_zh: str) -> Optional[dict]:
         for food in self._foods.values():
@@ -160,7 +166,12 @@ class JSONKnowledgeBase:
     # ===== 营养数据 =====
 
     def get_nutrient_info(self, nutrient_id: str) -> Optional[dict]:
-        return self._nutrients.get(nutrient_id)
+        if nutrient_id in self._nutrients:
+            return self._nutrients[nutrient_id]
+        for n in self._nutrients.values():
+            if n.get("id") == nutrient_id:
+                return n
+        return None
 
     def list_nutrients(self) -> list[dict]:
         return list(self._nutrients.values())

@@ -117,25 +117,65 @@ class RuleEngine:
             food = meal.get("food_data", {})
             plan_date = meal.get("date")
 
-            # 单食材检查
-            for rule_fn in [check_known_allergy, check_age_appropriate, check_strictly_avoided]:
-                result = rule_fn(food, baby_profile.get("allergies", []), kb=self.kb)
+            # 单食材检查 — 每个规则函数用不同的参数
+            food = meal.get("food_data", {})
+            plan_date = meal.get("date")
+            age_months = baby_profile.get("age_months", 6)
+            allergies = baby_profile.get("allergies", [])
 
-                if result.tag == "avoid":
-                    violations.append({
-                        "day": meal.get("day"),
-                        "food": food.get("name_zh"),
-                        "rule": result.rule_name,
-                        "severity": "error",
-                        "reason": result.reason,
-                    })
-                elif result.tag == "caution":
-                    warnings.append({
-                        "day": meal.get("day"),
-                        "food": food.get("name_zh"),
-                        "rule": result.rule_name,
-                        "reason": result.reason,
-                    })
+            # 过敏拦截
+            result = check_known_allergy(food, allergies, kb=self.kb)
+            if result.tag == "avoid":
+                violations.append({
+                    "day": meal.get("day"),
+                    "food": food.get("name_zh"),
+                    "rule": result.rule_name,
+                    "severity": "error",
+                    "reason": result.reason,
+                })
+            elif result.tag == "caution":
+                warnings.append({
+                    "day": meal.get("day"),
+                    "food": food.get("name_zh"),
+                    "rule": result.rule_name,
+                    "reason": result.reason,
+                })
+
+            # 月龄适龄
+            result = check_age_appropriate(food, age_months, kb=self.kb)
+            if result.tag == "avoid":
+                violations.append({
+                    "day": meal.get("day"),
+                    "food": food.get("name_zh"),
+                    "rule": result.rule_name,
+                    "severity": "error",
+                    "reason": result.reason,
+                })
+            elif result.tag == "caution":
+                warnings.append({
+                    "day": meal.get("day"),
+                    "food": food.get("name_zh"),
+                    "rule": result.rule_name,
+                    "reason": result.reason,
+                })
+
+            # 严格禁止
+            result = check_strictly_avoided(food, age_months, kb=self.kb)
+            if result.tag == "avoid":
+                violations.append({
+                    "day": meal.get("day"),
+                    "food": food.get("name_zh"),
+                    "rule": result.rule_name,
+                    "severity": "error",
+                    "reason": result.reason,
+                })
+            elif result.tag == "caution":
+                warnings.append({
+                    "day": meal.get("day"),
+                    "food": food.get("name_zh"),
+                    "rule": result.rule_name,
+                    "reason": result.reason,
+                })
 
         # 营养覆盖检查
         nutrient_result = check_nutrient_coverage(

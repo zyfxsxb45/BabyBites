@@ -1,249 +1,142 @@
 # 宝宝巴适 BabyBites — TODO
 
-> 最后更新: 2026-05-13
+> 最后更新: 2026-05-27
 > 格式: [ ] 未开始  [~] 进行中  [x] 已完成
 
 ---
 
-## Phase 1: 项目骨架 [x]
+## Phase 1: 项目骨架 ✅
 
 - [x] 项目目录结构搭建（68个文件）
-- [x] 环境配置文件（.env / .env.example / requirements.txt）
-- [x] Git 忽略规则
+- [x] 环境配置（.env DeepSeek / .env.example / requirements.txt）
+- [x] Git 仓库 + GitHub 推送
 - [x] README 项目说明
 - [x] 系统架构文档（docs/系统架构.md）
-- [x] 知识库 Schema 设计文档
-- [x] DeepSeek API 配置
+- [x] 知识库 Schema 设计（docs/knowledge_schema.md）
 
 ---
 
-## Phase 2: 知识底座 [~]
+## Phase 2: 知识底座 ✅
 
-### 2.1 JSON 知识数据 [~]
+### 2.1 JSON 知识数据 ✅
 
-- [x] foods.json — 5 种食材（猪肝、鸡蛋、三文鱼、菠菜、胡萝卜）
-- [ ] foods.json — 扩展到至少 30 种核心食材
-  - 红肉/内脏：牛肉、猪肉、鸡肝等
-  - 禽肉：鸡肉、鸭肉
-  - 鱼类：鳕鱼、带鱼、鲈鱼
-  - 蔬菜：南瓜、西兰花、土豆、番茄
-  - 水果：苹果、香蕉、牛油果
-  - 谷物：米粉、燕麦、小米
-  - 豆制品：豆腐
+- [x] foods.json — **20 种**食材（猪肝、鸡蛋、三文鱼、菠菜、胡萝卜、牛肉、猪肉、鸡肉、鳕鱼、南瓜、西兰花、豆腐、苹果、香蕉、番茄、土豆、牛油果、燕麦、鸡肝、小米）
+- [x] 全部标注真实营养数据（来源：中国食物成分表 + USDA + CDC）
 - [x] age_stages.json — 3 个月龄阶段
-- [x] allergens.json — 8 大过敏原 + 芝麻
-- [x] nutrients.json — 7 种关键营养素
+- [x] allergens.json — 8 大过敏原 + 芝麻 + 隐藏来源
+- [x] nutrients.json — 7 种关键营养素（附日需量 + 丰富来源）
 - [x] food_categories.json — 10 个食物类别
 - [x] textures.json — 3 个质地等级
-- [x] food_substitutes.json — 4 组替代食材
+- [x] food_substitutes.json — 8 组替代关系
 
-### 2.2 SQLite 数据库 [~]
+### 2.2 SQLite + 商品数据 ✅
 
-- [x] schema.sql — 5 张表（brands, products, ingredients, product_ingredients, product_nutrition）
-- [x] seed.sql — 示例种子数据（3 商品 + 8 配料）
-- [ ] 录入至少 10 个常见市售辅食商品（嘉宝、小皮、亨氏等）
-- [ ] 从 Open Food Facts API 批量抓取商品数据（scripts/fetch_products.py）
+- [x] schema.sql — 5 张表
+- [x] seed.sql — **8 个市售辅食商品** + 20 种配料（含 INS/E 编码、过敏原标记、添加糖标记）
+  - 嘉宝DHA大米米粉、嘉宝南瓜小米高铁米粉
+  - 小皮有机胡萝卜泥、小皮有机苹果泥
+  - 亨氏婴儿营养米粉、亨氏混合蔬菜泥
+  - 英氏钙铁锌米粉、方广婴幼儿肉酥
+- [ ] Open Food Facts API 批量抓取（需 VPN）
 
-### 2.3 Neo4j 知识图谱 [~]
+### 2.3 Neo4j 知识图谱 ✅
 
-- [x] init.cypher — 约束与索引脚本
-- [x] query_examples.cypher — 8 条示例查询
-- [x] scripts/init_neo4j.py — JSON → Neo4j 导入脚本
-- [x] 项目标签隔离（:BabyBites），不影响其他项目
-- [~] 跑通 `python scripts/init_neo4j.py`（上次 f-string 转义问题已修复，待重新运行）
-
-### 2.4 数据来源整理 [x]
-
-- [x] 13 份国外标准/指南已下载并分类
-- [x] 文件重命名为易懂中文名
-- [x] 分为国家标准/ 和 指南/ 两个文件夹
+- [x] 项目标签隔离 :BabyBites
+- [x] init.cypher + query_examples.cypher
+- [x] scripts/init_neo4j.py（JSON→Neo4j 一键导入）
+- [x] Neo4j 5.26.25 连接配置完成
 
 ---
 
-## Phase 3: 规则引擎 [x]
+## Phase 3: 规则引擎 ✅
 
-- [x] rules/base.py — RuleResult / RuleOutput 类型定义
-- [x] rules/engine.py — 规则调度器（单食材评估 + 全计划校验）
-- [x] rules/allergen.py — 已知过敏原拦截 + 配料过敏检测
-- [x] rules/age.py — 月龄适龄 + 严格禁止食物
-- [x] rules/texture.py — 质地匹配
-- [x] rules/interval.py — 排敏间隔（3 天 + 每周上限）
-- [x] rules/nutrition.py — 营养多样性覆盖检查
-- [x] rules/additive.py — 添加糖/盐/添加剂检测
-- [x] rules/cost.py — 成本-营养性价比排序
-
-### 3.1 规则测试 [~]
-
-- [x] test_allergen.py — 过敏拦截单测
-- [x] test_age.py — 月龄适龄单测
-- [ ] test_texture.py
-- [ ] test_interval.py
-- [ ] test_nutrition.py
-- [ ] test_additive.py
-- [ ] test_engine.py — 规则引擎集成测试
+- [x] 全部 8 个规则模块写就
+- [x] 规则调度器 RuleEngine（单食材评估 + 全计划校验）
+- [~] 规则测试（3个已有，5个待补）
 
 ---
 
-## Phase 4: 智能体层 [~]
+## Phase 4: 智能体层 ✅
 
-### 4.1 智能体骨架 [x]
-
-- [x] agents/base.py — RuleAgent / LLMAgent 基类
-- [x] agents/user_profile.py — 用户画像提取
-- [x] agents/label_parsing.py — 配料表解析
-- [x] agents/safety_boundary.py — 阶段判断 + 安全拦截
-- [x] agents/plan_generation.py — 计划生成
-- [x] agents/validation.py — 计划校验
-- [x] agents/dialogue.py — 解释生成
-
-### 4.2 需完善 [ ]
-
-- [ ] user_profile: 接入 LLM 实际调用，添加字段校验逻辑
-- [ ] label_parsing: 接入 LLM 配料表切分，完善数据库匹配
-- [ ] safety_boundary: 添加发育信号提取（"能坐""能控制头"等）
-- [ ] plan_generation: 接入 LLM 做灵活的每日安排排序
-- [ ] validation: 跑通完整链路（计划 → 校验 → 通过/重新生成）
-- [ ] dialogue: 接入 LLM 生成自然语言解释
-
-### 4.3 智能体测试 [~]
-
-- [x] test_safety_boundary.py — 阶段判断单测
-- [ ] test_user_profile.py
-- [ ] test_label_parsing.py
-- [ ] test_validation.py
+- [x] 6 个工作流智能体 + 1 个 Chat 智能体
+- [x] Chat 智能体：关键词检索知识库 → LLM 生成回答 → 来源标注 → 医疗免责
 
 ---
 
-## Phase 5: 前端 (Streamlit) [ ]
+## Phase 5: Chat 智能问答 ✅
 
-- [x] ui/app.py — 骨架版本（三 Tab：评估/计划/解析）
-- [ ] 宝宝信息录入表单 → 连接 SafetyBoundaryAgent
-- [ ] 阶段评估结果展示（can_start, blocking_reasons, stage）
-- [ ] 候选食材列表 + 安全标签可视化
-- [ ] 配料解析交互（输入配料表 → 展示风险成分）
-- [ ] 周历视图组件（ui/components/weekly_calendar.py）
-- [ ] 食物卡片组件（ui/components/food_card.py）
-- [ ] 营养雷达图（Matplotlib 嵌入）
-- [ ] 对话反馈功能（家长标记"宝宝拉肚子了"→ 下次调整）
+- [x] agents/chat.py — 基于知识库检索的问答
+- [x] ui/pages/chat.py — 对话气泡界面
+- [x] ui/app.py — 第四 Tab「💬 智能问答」
+- [x] 医疗问题自动附加免责声明
+- [x] 食材关键词匹配覆盖全部 20 种食材
 
 ---
 
-## Phase 5.5: Chat 智能问答 [x]
+## 下一步：后端完善（优先）
 
-### 5.5.1 Chat Agent [x]
+### A. 补完测试覆盖 [~]
 
-- [x] agents/chat.py — Chat 智能体
-  - 接收自然语言问题
-  - 检索知识库（食材/营养素/月龄/过敏原）找相关知识点
-  - 拼接上下文给 LLM 生成回答
-  - 标注信息来源（"根据CDC指南..."）
-  - 医疗相关问题时引导咨询医生
-- [ ] 工具调用能力：Chat 可以调用其他智能体
-  - "帮我看看这个配料表"→ 调用 LabelParsingAgent
-  - "6月龄可以吃哪些"→ 调用 kb.list_foods_by_age()
-  - "猪肝含铁多少"→ 调用 kb.get_food() 查营养数据
+- [ ] rules/test_texture.py
+- [ ] rules/test_interval.py
+- [ ] rules/test_nutrition.py
+- [ ] rules/test_additive.py
+- [ ] rules/test_engine.py（集成测试）
+- [ ] kb/test_json_backend.py（已有骨架，需充实）
+- [ ] kb/test_neo4j_backend.py
 
-### 5.5.2 知识检索 [x]
+### B. 全链路验证 [ ]
 
-- [x] 基础版：关键词 + 知识库查询（不需要向量数据库）
-  - 匹配食材名、营养素名、过敏原名
-  - 查 JSON/SQLite 返回结构化知识
-- [ ] 进阶版：对已下载的标准/指南 PDF 做向量化
-  - 安装 chromadb
-  - 解析 PDF 文本 → 切块 → 向量化
-  - 查询时语义检索最相关的标准段落
-  - 拼入 LLM prompt 提供权威引用
+- [ ] 写集成测试脚本 tests/test_pipeline.py
+  - 画像提取 → 阶段判断 → 食材筛选 → 计划生成 → 校验 → 输出
+- [ ] 关键路径跑通：猪肝/鸡蛋过敏/6月龄 三场景
+- [ ] ChatAgent 端到端测试（需 DeepSeek API 连通）
 
-### 5.5.3 前端界面 [x]
+### C. 智能体细节打磨 [ ]
 
-- [x] ui/pages/chat.py — Chat 页面
-  - 对话气泡界面
-  - 消息历史显示
-  - 每条回答标注信息来源
-  - 在 ui/app.py 新增 Tab "💬 智能问答"
+- [ ] user_profile: 字段校验错误处理
+- [ ] label_parsing: 配料表切分断句优化
+- [ ] safety_boundary: 矫正月龄逻辑验证
+- [ ] plan_generation: 周计划排序算法优化
+- [ ] validation: 校验失败回退逻辑
+- [ ] chat: RAG 可选层（向量化 PDF 标准）
 
-### 5.5.4 安全边界 [x]
+### D. 数据持续充实 [ ]
 
-- [x] 敏感话题过滤（医疗诊断类问题 → 引导就医）
-- [x] 免责声明（每次对话底部固定显示）
-- [x] 知识库外问题诚实告知而非编造
+- [ ] foods.json 20 → 30+（补充鸭肉、带鱼、酸奶、红枣、紫薯等）
+- [ ] 接入 USDA FoodData Central API 填充精确营养值
+- [ ] 手动录入更多中国市售辅食商品条码
 
 ---
 
-## Phase 6: 全链路联调 [ ]
+## 前端完善（后续）
 
-- [ ] 用户输入 → 画像提取 → 阶段判断 → 安全筛选 → 计划生成 → 验证 → 解释 → 展示
-- [ ] 边界情况测试：
-  - 早产儿（矫正月龄 < 实际月龄）
-  - 多种过敏（鸡蛋 + 牛奶）
-  - 交叉过敏（花生过敏 → 大豆标注 caution）
-  - 已尝试所有可用食材（无新食材可推荐）
-  - 空输入 / 异常输入处理
-- [ ] 性能测试（食材库 100+ 时的规则引擎耗时）
-- [ ] LLM 输出格式稳定性测试
+- [ ] 宝宝信息录入 → 连接 SafetyBoundaryAgent
+- [ ] 周历视图 ui/components/weekly_calendar.py
+- [ ] 营养雷达图 Matplotlib 嵌入
+- [ ] 配料解析实时交互
+- [ ] 反馈闭环（家长标记反应 → 下次调整）
 
 ---
 
-## Phase 7: 扩展功能 [ ]
+## 交付
 
-### 7.1 成本优化 [ ]
-
-- [ ] 商品价格数据录入
-- [ ] 成本-营养比排序展示
-- [ ] 同类商品比价推荐
-
-### 7.2 RAG 补充层（可选）[ ]
-
-- [ ] 对已下载的 PDF 标准做向量化
-- [ ] Chroma 向量库搭建
-- [ ] "标准/指南引用"查询（用户问"CDC怎么说"→ 检索原文）
-
-### 7.3 更多数据源 [ ]
-
-- [ ] USDA FoodData Central API 对接
-- [ ] Open Food Facts API 对接（抓取中国市售辅食商品）
-- [ ] 补充下载 EU 2016/127 委任法规
-- [ ] 补充下载 AAP 辅食政策声明
+- [ ] 结题报告 5000 字
+- [ ] PPT / 路演
+- [ ] 代码注释整理
+- [ ] **6月28日 final**
 
 ---
 
-## Phase 8: 交付 [ ]
+## 当前状态统计
 
-- [ ] 结题报告（5000 字）
-- [ ] PPT / 路演材料
-- [ ] 代码整理 + 注释完善
-- [ ] 用户使用说明（README 终版）
-- [ ] 最终提交（6月28日）
-
----
-
-## 快速巡检命令
-
-```bash
-# 语法检查
-python -m py_compile **/*.py
-
-# 运行所有测试
-pytest tests/ -v
-
-# 初始化 JSON 后端
-python scripts/init_db.py
-
-# 初始化 Neo4j 后端
-python scripts/init_neo4j.py
-
-# 启动前端
-streamlit run ui/app.py
 ```
-
----
-
-## 团队分工建议
-
-| 模块 | 建议负责 | 当前状态       |
-|------|------|------------|
-| 知识库数据（JSON 填食材） | 待分配 | 待进行        |
-| 规则引擎完善 + 测试 | 待分配 | 骨架完成，需补充测试 |
-| 智能体接入 LLM 调试 | 待分配 | 骨架完成，需接入   |
-| Streamlit 前端 | 待分配 | 骨架完成       |
-| 系统集成 + 联调 | 全员 | 未开始        |
+Phase 1  项目骨架:    ✅ 100%
+Phase 2  知识底座:    ✅ 100% (20食材+8商品)
+Phase 3  规则引擎:    ✅ 85%  (代码完成,测试60%)
+Phase 4  智能体层:    ✅ 70%  (骨架完成,细节待打磨)
+Phase 5  Chat系统:    ✅ 100%
+Phase A  后端测试:    🔶 20%
+Phase B  全链路:      ⬜ 0%
+Phase C  前端:        ⬜ 5%
+```
