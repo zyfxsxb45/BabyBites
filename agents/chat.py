@@ -41,8 +41,9 @@ MEDICAL_DISCLAIMER = "\n\n---\n⚠️ 以上内容仅供参考，不构成医疗
 class ChatAgent(LLMAgent):
     """智能问答智能体"""
 
-    def __init__(self, kb=None, llm=None):
+    def __init__(self, kb=None, llm=None, rag=None):
         super().__init__(kb=kb, llm=llm)
+        self.rag = rag  # RAGRetriever 实例（可选）
 
         # 可被 LLM "调用"的工具
         self._tools = {
@@ -67,8 +68,16 @@ class ChatAgent(LLMAgent):
         if not message:
             return {"answer": "请告诉我你的问题。", "sources": []}
 
-        # 1. 检索相关知识
+        # 1. 检索知识库
         context, sources = self._retrieve_knowledge(message)
+
+        # 2. RAG 检索标准/指南原文
+        rag_context = ""
+        if self.rag and self.rag.is_loaded:
+            rag_context = self.rag.search_formatted(message, top_k=3)
+            if rag_context:
+                context = (context or "") + "\n\n" + rag_context
+                sources.add("标准/指南原文（RAG检索）")
 
         # 2. 检查是否为医疗问题 → 附加警告
         is_medical = self._is_medical_question(message)

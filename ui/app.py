@@ -22,9 +22,17 @@ if "kb" not in st.session_state:
 if "llm" not in st.session_state:
     st.session_state.llm = init_llm()
 
+if "rag" not in st.session_state:
+    from kb.rag import RAGRetriever
+    st.session_state.rag = RAGRetriever()
+
 if "chat_agent" not in st.session_state:
     from agents.chat import ChatAgent
-    st.session_state.chat_agent = ChatAgent(kb=st.session_state.kb, llm=st.session_state.llm)
+    st.session_state.chat_agent = ChatAgent(
+        kb=st.session_state.kb,
+        llm=st.session_state.llm,
+        rag=st.session_state.rag,
+    )
 
 if "safety_agent" not in st.session_state:
     from agents.safety_boundary import SafetyBoundaryAgent
