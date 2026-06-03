@@ -48,6 +48,13 @@ if "label_agent" not in st.session_state:
     from agents.label_parsing import LabelParsingAgent
     st.session_state.label_agent = LabelParsingAgent(kb=st.session_state.kb, llm=st.session_state.llm)
 
+if "feedback_store" not in st.session_state:
+    from data.feedback_store import FeedbackStore
+    st.session_state.feedback_store = FeedbackStore()
+
+if "feedback_history" not in st.session_state:
+    st.session_state.feedback_history = []
+
 # ===== 帮助函数 =====
 
 def tag_badge(tag):
@@ -238,10 +245,18 @@ with tab2:
 
         if gen_btn or "weekly_plan" not in st.session_state:
             with st.spinner("正在生成一周计划..."):
+                # 应用反馈调整安全食材池
+                from rules.feedback import get_feedback_adjusted_foods
+                adjusted = get_feedback_adjusted_foods(
+                    safe_foods, st.session_state.feedback_store, kb=st.session_state.kb
+                )
+                # 过滤掉 avoid 的食材
+                filtered = [f for f in adjusted if f.get("tag") != "avoid"]
+
                 stage = st.session_state.kb.get_age_stage(age_months)
                 plan_result = st.session_state.plan_agent.process({
                     "profile": baby_profile,
-                    "safe_foods": safe_foods,
+                    "safe_foods": filtered,
                     "stage": stage,
                 })
                 st.session_state.weekly_plan = plan_result
@@ -288,6 +303,88 @@ with tab2:
                         st.info(n)
 
             st.caption(plan_result.get("stage_label", ""))
+
+        # ---- 反馈区域 ----
+        st.markdown("---")
+        st.subheader("📝 宝宝反馈")
+        st.caption("记录宝宝吃新食物后的反应，帮助系统调整后续推荐")
+
+        # 从计划中提取所有食材供选择
+        all_plan_foods = []
+        for d in plan:
+            for f in d.get("foods", []):
+                if f not in all_plan_foods:
+                    all_plan_foods.append(f)
+
+        if all_plan_foods:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                fb_food = st.selectbox("食材", all_plan_foods, key="fb_food")
+            with col2:
+                fb_reaction = st.selectbox(
+                    "反应",
+                    ["没问题", "轻微皮疹", "腹泻", "呕吐", "拒绝吃", "其他不适"],
+                    key="fb_reaction",
+                )
+            with col3:
+                fb_severity = st.selectbox(
+                    "严重程度",
+                    ["mild", "moderate", "severe"],
+                    format_func=lambda x: {"mild": "轻微", "moderate": "中度", "severe": "严重"}[x],
+                    key="fb_severity",
+                )
+
+            fb_notes = st.text_input("备注（可选）", placeholder="如：吃完2小时后脸上出红点", key="fb_notes")
+
+            if st.button("📩 提交反馈", type="primary"):
+                reaction_map = {
+                    "没问题": "none", "轻微皮疹": "rash", "腹泻": "diarrhea",
+                    "呕吐": "vomiting", "拒绝吃": "refusal", "其他不适": "other",
+                }
+                st.session_state.feedback_store.add(
+                    food_name=fb_food,
+                    reaction=reaction_map.get(fb_reaction, "other"),
+                    severity=fb_severity,
+                    notes=fb_notes,
+                )
+                # 也加到 session 历史里
+                st.session_state.feedback_history.append({
+                    "food": fb_food,
+                    "reaction": fb_reaction,
+                    "severity": fb_severity,
+                    "date": "刚刚",
+                })
+                st.success(f"已记录「{fb_food}」的反馈")
+                st.rerun()
+
+        # ---- 反馈历史 ----
+        summary = st.session_state.feedback_store.summary
+        if summary["total"] > 0:
+            with st.expander(f"📋 反馈历史（{summary['total']}条记录，覆盖{summary['foods_tracked']}种食材）"):
+                if summary["avoid_foods"]:
+                    st.error(f"🚫 已标记避免：{'、'.join(summary['avoid_foods'])}")
+                if summary["caution_foods"]:
+                    st.warning(f"⚠️ 已标记注意：{'、'.join(summary['caution_foods'])}")
+
+                records = st.session_state.feedback_store.get_all()
+                for r in reversed(records[-10:]):
+                    icon = {"none": "✅", "rash": "🔴", "diarrhea": "🟠", "vomiting": "🟠", "refusal": "🟡", "other": "⚪"}
+                    sev = {"mild": "轻", "moderate": "中", "severe": "重"}
+                    rx_label = {"none": "没问题", "rash": "皮疹", "diarrhea": "腹泻", "vomiting": "呕吐", "refusal": "拒绝", "other": "不适"}
+                    icon_str = icon.get(r.get("reaction", ""), "")
+                    sev_str = sev.get(r.get("severity", ""), "")
+                    rx_str = rx_label.get(r.get("reaction", ""), r.get("reaction", ""))
+                    st.caption(
+                        f"{icon_str} {r.get('date', '')} | "
+                        f"**{r.get('food_name', '')}**: {rx_str} ({sev_str})"
+                        f"{' — ' + r.get('notes', '') if r.get('notes') else ''}"
+                    )
+
+                if st.button("🗑️ 清除所有反馈"):
+                    for r in list(st.session_state.feedback_store.get_all()):
+                        st.session_state.feedback_store.delete(r["id"])
+                    st.session_state.feedback_history = []
+                    st.rerun()
 
 
 # ================================================================
