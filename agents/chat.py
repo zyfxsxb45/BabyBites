@@ -157,19 +157,15 @@ class ChatAgent(LLMAgent):
     def _find_foods_in_text(self, text: str) -> list[dict]:
         """在问题文本中匹配食材名"""
         found = []
-        text_lower = text.lower()
-        # 遍历食材库做关键词匹配
-        for food_id in ["food_001", "food_002", "food_003", "food_004", "food_005"]:
-            food = self.kb.get_food(food_id)
-            if not food:
-                continue
-            name = food.get("name_zh", "")
-            if name and name in text:
-                found.append(food)
-        # 也通过 get_food_by_name 试试
-        for keyword in ["猪肝", "鸡蛋", "三文鱼", "菠菜", "胡萝卜",
-                        "牛肉", "鸡肉", "豆腐", "南瓜", "西兰花", "苹果", "香蕉"]:
-            if keyword in text and not any(f.get("name_zh") == keyword for f in found):
+        # 遍历食材库关键词做匹配
+        all_food_keywords = [
+            "猪肝", "鸡蛋", "三文鱼", "菠菜", "胡萝卜",
+            "牛肉", "猪肉", "鸡肉", "鳕鱼", "南瓜",
+            "西兰花", "豆腐", "苹果", "香蕉", "番茄",
+            "土豆", "牛油果", "燕麦", "鸡肝", "小米",
+        ]
+        for keyword in all_food_keywords:
+            if keyword in text:
                 food = self.kb.get_food_by_name(keyword)
                 if food:
                     found.append(food)

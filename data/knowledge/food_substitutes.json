@@ -4,35 +4,64 @@
   "_source": "自行整理，参考CDC指南和美国膳食指南",
 
   "猪肝": {
-    "category": "高铁红肉",
+    "category": "高铁内脏",
     "alternatives": [
-      {"food": "牛肝", "reason": "同为高铁内脏，铁含量相近"},
-      {"food": "牛肉泥", "reason": "同为红肉高铁来源"},
-      {"food": "鸡肝", "reason": "同为高铁内脏"}
+      {"food": "鸡肝", "reason": "同为高铁内脏，鸡肝口感更细腻"},
+      {"food": "牛肉", "reason": "同为红肉高铁来源"},
+      {"food": "牛肝", "reason": "同为高铁内脏"}
+    ]
+  },
+  "牛肉": {
+    "category": "红肉",
+    "alternatives": [
+      {"food": "猪肉(瘦)", "reason": "同为红肉蛋白来源"},
+      {"food": "鸡肉", "reason": "同为动物蛋白"},
+      {"food": "猪肝", "reason": "同为高铁来源"}
     ]
   },
   "三文鱼": {
     "category": "高DHA鱼类",
     "alternatives": [
-      {"food": "鳕鱼", "reason": "同为高DHA低汞鱼类"},
-      {"food": "带鱼", "reason": "同为高DHA海鱼"},
-      {"food": "鲈鱼", "reason": "同为婴儿推荐鱼类"}
+      {"food": "鳕鱼", "reason": "同为高蛋白低汞鱼类"},
+      {"food": "鸡蛋", "reason": "同为DHA来源(蛋黄)"}
+    ]
+  },
+  "鳕鱼": {
+    "category": "白鱼",
+    "alternatives": [
+      {"food": "三文鱼", "reason": "同为婴儿推荐鱼类"},
+      {"food": "鸡肉", "reason": "同为低脂蛋白来源"}
     ]
   },
   "鸡蛋": {
     "category": "全蛋白来源",
     "alternatives": [
       {"food": "豆腐", "reason": "同为优质蛋白，适合鸡蛋过敏替代"},
-      {"food": "鹌鹑蛋", "reason": "同为蛋类蛋白来源"},
-      {"food": "鸡肉泥", "reason": "同为动物蛋白"}
+      {"food": "鸡肉", "reason": "同为动物蛋白"},
+      {"food": "三文鱼", "reason": "同为高营养蛋白来源"}
     ]
   },
   "菠菜": {
     "category": "叶菜类",
     "alternatives": [
-      {"food": "西兰花", "reason": "同为高维生素C蔬菜"},
-      {"food": "小油菜", "reason": "同为高钙叶菜"},
-      {"food": "小白菜", "reason": "同为婴儿适宜叶菜"}
+      {"food": "西兰花", "reason": "同为高VC蔬菜，促进铁吸收"},
+      {"food": "南瓜", "reason": "同为常用婴儿蔬菜"},
+      {"food": "番茄", "reason": "同为高VC蔬菜"}
+    ]
+  },
+  "鸡肉": {
+    "category": "禽肉",
+    "alternatives": [
+      {"food": "猪肉(瘦)", "reason": "同为瘦肉蛋白"},
+      {"food": "牛肉", "reason": "同为动物蛋白"},
+      {"food": "鳕鱼", "reason": "同为低脂蛋白来源"}
+    ]
+  },
+  "豆腐": {
+    "category": "豆制品",
+    "alternatives": [
+      {"food": "鸡蛋", "reason": "同为非肉类蛋白来源"},
+      {"food": "鸡肉", "reason": "同为优质蛋白"}
     ]
   }
 }

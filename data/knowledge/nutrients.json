@@ -15,7 +15,7 @@
       "stage_9_11": 11,
       "stage_12_plus": 7
     },
-    "rich_sources": ["猪肝", "牛肉", "高铁米粉", "菠菜"],
+    "rich_sources": ["猪肝", "鸡肝", "牛肉", "高铁米粉", "燕麦", "小米"],
     "deficiency_risk": "缺铁性贫血，影响认知发育",
     "special_notes": "动物来源（血红素铁）吸收率远高于植物来源。搭配维生素C可促进植物铁吸收。"
   },
@@ -31,7 +31,7 @@
       "stage_9_11": 3,
       "stage_12_plus": 3
     },
-    "rich_sources": ["猪肝", "牛肉", "鸡肉"],
+    "rich_sources": ["猪肝", "鸡肝", "牛肉", "燕麦"],
     "deficiency_risk": "生长迟缓、食欲减退",
     "special_notes": ""
   },
@@ -47,7 +47,7 @@
       "stage_9_11": 260,
       "stage_12_plus": 700
     },
-    "rich_sources": ["酸奶", "豆腐", "菠菜"],
+    "rich_sources": ["豆腐", "菠菜", "西兰花", "酸奶(6m+)"],
     "deficiency_risk": "骨骼发育不良",
     "special_notes": "12月龄前钙主要来源于母乳/配方奶，辅食为补充"
   },
@@ -95,7 +95,7 @@
       "stage_9_11": 11,
       "stage_12_plus": 13
     },
-    "rich_sources": ["猪肝", "鸡蛋", "三文鱼", "豆腐"],
+    "rich_sources": ["鸡肝", "猪肝", "鸡肉", "鸡蛋", "三文鱼", "豆腐"],
     "deficiency_risk": "生长迟缓，肌肉发育不良",
     "special_notes": "通常通过正常辅食摄入即可满足，不需要特别补充"
   },
@@ -111,7 +111,7 @@
       "stage_9_11": 50,
       "stage_12_plus": 15
     },
-    "rich_sources": ["西兰花", "奇异果", "橙", "菠菜"],
+    "rich_sources": ["西兰花", "猕猴桃", "橙", "菠菜", "番茄"],
     "deficiency_risk": "坏血病（罕见）",
     "special_notes": "与含铁食物同食可显著增加铁吸收率"
   }

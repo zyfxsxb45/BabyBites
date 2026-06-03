@@ -1,7 +1,7 @@
 {
   "_schema_version": "1.0",
-  "_description": "食材主数据。每个食材包含分类、营养成分、过敏原、月龄要求等字段。",
-  "_source": "CDC指南、WHO指南、USDA FoodData Central",
+  "_description": "食材主数据。营养数据来源：中国食物成分表(1981) / USDA FoodData / CDC指南。",
+  "_source": "公共卫生科学数据中心 / CDC / WHO / USDA",
 
   "猪肝": {
     "id": "food_001",
@@ -10,10 +10,10 @@
     "category": "red_meat",
     "sub_category": "内脏",
     "nutrients": {
-      "铁": {"value": 22.6, "unit": "mg/100g"},
+      "铁": {"value": 25.0, "unit": "mg/100g"},
       "锌": {"value": 5.0, "unit": "mg/100g"},
-      "维生素A": {"value": 4972, "unit": "IU/100g"},
-      "蛋白质": {"value": 19.3, "unit": "g/100g"}
+      "维生素A": {"value": 8700, "unit": "IU/100g"},
+      "蛋白质": {"value": 21.3, "unit": "g/100g"}
     },
     "allergen": null,
     "potential_allergen": false,
@@ -22,7 +22,7 @@
     "iron_rich": true,
     "tags": ["高铁", "高锌", "高维生素A"],
     "notes_zh": "每周不超过1-2次，每次10-20g。含高维生素A，不宜过量。",
-    "source": "USDA FoodData Central / CDC指南"
+    "source": "中国食物成分表 / CDC指南"
   },
 
   "鸡蛋": {
@@ -55,16 +55,18 @@
     "nutrients": {
       "蛋白质": {"value": 20.4, "unit": "g/100g"},
       "DHA": {"value": 1.1, "unit": "g/100g"},
-      "铁": {"value": 0.8, "unit": "mg/100g"}
+      "铁": {"value": 0.8, "unit": "mg/100g"},
+      "锌": {"value": 0.64, "unit": "mg/100g"},
+      "维生素D": {"value": 440, "unit": "IU/100g"}
     },
     "allergen": "鱼类",
     "potential_allergen": true,
     "min_age_months": 6,
     "texture_stage": "puree",
     "iron_rich": false,
-    "tags": ["高DHA", "高蛋白", "八大过敏原"],
-    "notes_zh": "选新鲜三文鱼，彻底蒸熟去刺，捣成泥。首次尝试控制在一小勺。",
-    "source": "USDA FoodData Central / WHO指南"
+    "tags": ["高DHA", "高蛋白", "高VD", "八大过敏原"],
+    "notes_zh": "选新鲜三文鱼，彻底蒸熟去刺捣泥。首次试一小勺。每周1-2次。",
+    "source": "USDA FoodData Central"
   },
 
   "菠菜": {
@@ -74,18 +76,20 @@
     "category": "vegetables",
     "sub_category": "叶菜",
     "nutrients": {
-      "铁": {"value": 2.7, "unit": "mg/100g"},
-      "钙": {"value": 99, "unit": "mg/100g"},
-      "维生素C": {"value": 28, "unit": "mg/100g"}
+      "铁": {"value": 1.8, "unit": "mg/100g"},
+      "钙": {"value": 72, "unit": "mg/100g"},
+      "维生素C": {"value": 39, "unit": "mg/100g"},
+      "蛋白质": {"value": 2.4, "unit": "g/100g"},
+      "胡萝卜素": {"value": 3.87, "unit": "mg/100g"}
     },
     "allergen": null,
     "potential_allergen": false,
     "min_age_months": 6,
     "texture_stage": "puree",
     "iron_rich": false,
-    "tags": ["高铁(植物)", "高钙"],
-    "notes_zh": "菠菜含草酸，建议焯水后研磨。植物铁吸收率低于动物铁。",
-    "source": "USDA FoodData Central"
+    "tags": ["高铁(植物)", "高钙", "高VC"],
+    "notes_zh": "含草酸建议焯水后研磨。植物铁吸收率低于动物铁，搭配VC促进吸收。",
+    "source": "中国食物成分表"
   },
 
   "胡萝卜": {
@@ -96,15 +100,345 @@
     "sub_category": "根茎类",
     "nutrients": {
       "维生素A": {"value": 16706, "unit": "IU/100g"},
-      "膳食纤维": {"value": 2.8, "unit": "g/100g"}
+      "膳食纤维": {"value": 2.8, "unit": "g/100g"},
+      "蛋白质": {"value": 1.0, "unit": "g/100g"},
+      "铁": {"value": 0.3, "unit": "mg/100g"}
     },
     "allergen": null,
     "potential_allergen": false,
     "min_age_months": 6,
     "texture_stage": "puree",
     "iron_rich": false,
-    "tags": ["高维生素A", "常见辅食"],
+    "tags": ["高维生素A", "常见辅食", "基础蔬菜"],
     "notes_zh": "蒸熟后捣泥，常作为婴儿第一批蔬菜。",
     "source": "USDA FoodData Central / CDC指南"
+  },
+
+  "牛肉": {
+    "id": "food_006",
+    "name_zh": "牛肉",
+    "name_en": "beef",
+    "category": "red_meat",
+    "sub_category": null,
+    "nutrients": {
+      "蛋白质": {"value": 20.1, "unit": "g/100g"},
+      "铁": {"value": 0.9, "unit": "mg/100g"},
+      "锌": {"value": 3.6, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高蛋白", "高锌"],
+    "notes_zh": "选瘦牛肉，彻底煮熟后剁成肉泥。可与米糊混合。",
+    "source": "中国食物成分表"
+  },
+
+  "猪肉": {
+    "id": "food_007",
+    "name_zh": "猪肉(瘦)",
+    "name_en": "pork lean",
+    "category": "red_meat",
+    "sub_category": null,
+    "nutrients": {
+      "蛋白质": {"value": 10.5, "unit": "g/100g"},
+      "铁": {"value": 1.2, "unit": "mg/100g"},
+      "锌": {"value": 2.0, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["基础红肉", "日常蛋白"],
+    "notes_zh": "选猪里脊等瘦部位，去筋剁泥。",
+    "source": "中国食物成分表"
+  },
+
+  "鸡肉": {
+    "id": "food_008",
+    "name_zh": "鸡肉",
+    "name_en": "chicken",
+    "category": "poultry",
+    "sub_category": null,
+    "nutrients": {
+      "蛋白质": {"value": 21.5, "unit": "g/100g"},
+      "铁": {"value": 1.5, "unit": "mg/100g"},
+      "锌": {"value": 1.1, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高蛋白", "低脂", "易消化"],
+    "notes_zh": "鸡胸肉最佳，蒸熟后剁泥。最常见的婴儿动物蛋白来源。",
+    "source": "中国食物成分表 / CDC指南"
+  },
+
+  "鳕鱼": {
+    "id": "food_009",
+    "name_zh": "鳕鱼",
+    "name_en": "cod",
+    "category": "fish",
+    "sub_category": "白鱼",
+    "nutrients": {
+      "蛋白质": {"value": 17.8, "unit": "g/100g"},
+      "DHA": {"value": 0.3, "unit": "g/100g"},
+      "铁": {"value": 0.4, "unit": "mg/100g"},
+      "维生素D": {"value": 40, "unit": "IU/100g"}
+    },
+    "allergen": "鱼类",
+    "potential_allergen": true,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高蛋白", "低脂", "低汞"],
+    "notes_zh": "肉质细嫩刺少，适合婴儿。彻底去刺后蒸熟捣泥。",
+    "source": "USDA FoodData Central"
+  },
+
+  "南瓜": {
+    "id": "food_010",
+    "name_zh": "南瓜",
+    "name_en": "pumpkin",
+    "category": "vegetables",
+    "sub_category": "瓜类",
+    "nutrients": {
+      "胡萝卜素": {"value": 2.40, "unit": "mg/100g"},
+      "铁": {"value": 0.1, "unit": "mg/100g"},
+      "钙": {"value": 11, "unit": "mg/100g"},
+      "维生素C": {"value": 4, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高胡萝卜素", "天然甜味", "基础蔬菜"],
+    "notes_zh": "蒸熟后自带甜味，宝宝接受度高。常作为第一口蔬菜泥。",
+    "source": "中国食物成分表"
+  },
+
+  "西兰花": {
+    "id": "food_011",
+    "name_zh": "西兰花",
+    "name_en": "broccoli",
+    "category": "vegetables",
+    "sub_category": "花菜类",
+    "nutrients": {
+      "维生素C": {"value": 89, "unit": "mg/100g"},
+      "钙": {"value": 47, "unit": "mg/100g"},
+      "铁": {"value": 0.7, "unit": "mg/100g"},
+      "蛋白质": {"value": 2.8, "unit": "g/100g"},
+      "膳食纤维": {"value": 2.6, "unit": "g/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高VC", "高钙", "高纤维"],
+    "notes_zh": "蒸熟后切碎，富含维生素C可促进铁吸收。",
+    "source": "USDA FoodData Central"
+  },
+
+  "豆腐": {
+    "id": "food_012",
+    "name_zh": "豆腐",
+    "name_en": "tofu",
+    "category": "legumes",
+    "sub_category": "豆制品",
+    "nutrients": {
+      "蛋白质": {"value": 8.1, "unit": "g/100g"},
+      "钙": {"value": 164, "unit": "mg/100g"},
+      "铁": {"value": 1.9, "unit": "mg/100g"},
+      "锌": {"value": 0.6, "unit": "mg/100g"}
+    },
+    "allergen": "大豆",
+    "potential_allergen": true,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["植物蛋白", "高钙", "八大过敏原"],
+    "notes_zh": "选嫩豆腐，口感细腻适合婴儿。大豆过敏需避开。",
+    "source": "中国食物成分表"
+  },
+
+  "苹果": {
+    "id": "food_013",
+    "name_zh": "苹果",
+    "name_en": "apple",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "膳食纤维": {"value": 2.4, "unit": "g/100g"},
+      "维生素C": {"value": 4.6, "unit": "mg/100g"},
+      "蛋白质": {"value": 0.3, "unit": "g/100g"},
+      "铁": {"value": 0.1, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["基础水果", "高纤维"],
+    "notes_zh": "蒸熟后研磨成泥或直接刮泥。带皮氧化变色不影响食用。",
+    "source": "中国食物成分表 / CDC指南"
+  },
+
+  "香蕉": {
+    "id": "food_014",
+    "name_zh": "香蕉",
+    "name_en": "banana",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "钾": {"value": 358, "unit": "mg/100g"},
+      "膳食纤维": {"value": 2.6, "unit": "g/100g"},
+      "蛋白质": {"value": 1.1, "unit": "g/100g"},
+      "铁": {"value": 0.3, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高钾", "天然甜味", "即食"],
+    "notes_zh": "天然柔软可直接刮泥，无需蒸煮。含钾高有助肠道蠕动。",
+    "source": "中国食物成分表 / CDC指南"
+  },
+
+  "番茄": {
+    "id": "food_015",
+    "name_zh": "番茄",
+    "name_en": "tomato",
+    "category": "vegetables",
+    "sub_category": "茄果类",
+    "nutrients": {
+      "维生素C": {"value": 8, "unit": "mg/100g"},
+      "铁": {"value": 0.8, "unit": "mg/100g"},
+      "胡萝卜素": {"value": 0.37, "unit": "mg/100g"},
+      "蛋白质": {"value": 0.8, "unit": "g/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高VC", "酸甜口味"],
+    "notes_zh": "去皮去籽后蒸熟捣泥。酸甜味刺激食欲。",
+    "source": "中国食物成分表"
+  },
+
+  "土豆": {
+    "id": "food_016",
+    "name_zh": "土豆",
+    "name_en": "potato",
+    "category": "vegetables",
+    "sub_category": "根茎类",
+    "nutrients": {
+      "维生素C": {"value": 27, "unit": "mg/100g"},
+      "钾": {"value": 421, "unit": "mg/100g"},
+      "蛋白质": {"value": 2.0, "unit": "g/100g"},
+      "铁": {"value": 0.8, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高钾", "高VC", "基础辅食"],
+    "notes_zh": "蒸熟后捣泥，口感细腻。可与其他菜泥混合。",
+    "source": "USDA FoodData Central"
+  },
+
+  "牛油果": {
+    "id": "food_017",
+    "name_zh": "牛油果",
+    "name_en": "avocado",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "健康脂肪": {"value": 15.0, "unit": "g/100g"},
+      "膳食纤维": {"value": 6.7, "unit": "g/100g"},
+      "钾": {"value": 485, "unit": "mg/100g"},
+      "蛋白质": {"value": 2.0, "unit": "g/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高健康脂肪", "高纤维", "即食"],
+    "notes_zh": "天然奶油质地，直接刮泥无需蒸煮。含优质不饱和脂肪酸。",
+    "source": "USDA FoodData Central / CDC指南"
+  },
+
+  "燕麦": {
+    "id": "food_018",
+    "name_zh": "燕麦",
+    "name_en": "oatmeal",
+    "category": "grains",
+    "sub_category": null,
+    "nutrients": {
+      "蛋白质": {"value": 13.5, "unit": "g/100g"},
+      "铁": {"value": 4.7, "unit": "mg/100g"},
+      "锌": {"value": 3.6, "unit": "mg/100g"},
+      "膳食纤维": {"value": 10.1, "unit": "g/100g"}
+    },
+    "allergen": "小麦",
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高铁", "高锌", "高纤维", "全谷物"],
+    "notes_zh": "选无添加的纯燕麦片，煮成糊状。注意麸质过敏可能。",
+    "source": "USDA FoodData Central"
+  },
+
+  "鸡肝": {
+    "id": "food_019",
+    "name_zh": "鸡肝",
+    "name_en": "chicken liver",
+    "category": "poultry",
+    "sub_category": "内脏",
+    "nutrients": {
+      "铁": {"value": 8.2, "unit": "mg/100g"},
+      "维生素A": {"value": 50900, "unit": "IU/100g"},
+      "蛋白质": {"value": 18.2, "unit": "g/100g"},
+      "锌": {"value": 4.8, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": true,
+    "tags": ["高铁", "高维生素A", "高锌"],
+    "notes_zh": "铁含量是猪肝的1/3但口感更细腻。每周1次，每次10-15g。",
+    "source": "中国食物成分表"
+  },
+
+  "小米": {
+    "id": "food_020",
+    "name_zh": "小米",
+    "name_en": "millet",
+    "category": "grains",
+    "sub_category": null,
+    "nutrients": {
+      "铁": {"value": 5.1, "unit": "mg/100g"},
+      "蛋白质": {"value": 9.0, "unit": "g/100g"},
+      "锌": {"value": 1.8, "unit": "mg/100g"},
+      "B族维生素": {"value": 1.0, "unit": "综合/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高铁", "易消化", "无麸质"],
+    "notes_zh": "煮成小米粥或小米糊，易消化是传统婴儿辅食谷物。无麸质。",
+    "source": "中国食物成分表 / CDC指南"
   }
 }
