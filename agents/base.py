@@ -30,12 +30,10 @@ class BaseAgent(ABC):
 class LLMAgent(BaseAgent):
     """需要 LLM 的智能体基类。
 
-    提供 LLM 调用和结构化输出的统一方法。
+    llm 可以为 None——此时智能体走纯规则/正则 fallback。
     """
 
     def __init__(self, kb=None, llm=None):
-        if llm is None:
-            raise ValueError(f"{self.__class__.__name__} requires LLM, but llm is None")
         super().__init__(kb=kb, llm=llm)
 
     def _ask_llm(self, system_prompt: str, user_message: str, **kwargs) -> str:

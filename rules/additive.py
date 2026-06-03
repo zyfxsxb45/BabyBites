@@ -29,7 +29,7 @@ def check_added_sugar(ingredient: dict, age_months: int) -> RuleResult:
         )
 
 
-def check_added_salt(ingredient: dict) -> RuleResult:
+def check_added_salt(ingredient: dict, age_months: int = 6) -> RuleResult:
     """检测配料是否为添加盐/钠。"""
     ing_name = ingredient.get("name", "未知成分")
     if not ingredient.get("is_added_salt"):
