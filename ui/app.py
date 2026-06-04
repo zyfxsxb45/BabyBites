@@ -183,54 +183,35 @@ with tab1:
             st.subheader("🍽️ 食材安全标签")
             avoid_list = []
             caution_list = []
-            recommended = []
-            later_list = []
+            suitable_list = []
 
             for fid, fr in food_results.items():
                 tag = fr.get("tag", "unknown")
-                display_name = fid
-                food = st.session_state.kb.get_food(fid) or st.session_state.kb.get_food_by_name(fid)
-                if food:
-                    display_name = food.get("name_zh", fid)
-                    # 高敏食材即使规则判 suitable，也放进 caution 提醒
-                    if food.get("potential_allergen") and tag == "suitable":
-                        tag = "caution"
-                        fr["reasons"] = fr.get("reasons", []) + ["常见过敏原，首次引入需观察"]
-
                 if tag == "avoid":
-                    avoid_list.append((display_name, fr))
+                    avoid_list.append((fid, fr))
                 elif tag == "caution":
-                    caution_list.append((display_name, fr))
-                elif food and food.get("iron_rich"):
-                    recommended.append((display_name, fr))
+                    caution_list.append((fid, fr))
                 else:
-                    later_list.append((display_name, fr))
+                    suitable_list.append((fid, fr))
 
             if avoid_list:
-                st.error(f"🚫 需避免 ({len(avoid_list)}种)：")
+                st.error(f"🚫 必须避免 ({len(avoid_list)}种)：")
                 for fid, fr in avoid_list:
                     reasons = "；".join(fr.get("reasons", []))
                     st.markdown(f"- **{fid}**：{reasons}")
 
             if caution_list:
-                st.warning(f"⚠️ 需谨慎引入 ({len(caution_list)}种)：")
+                st.warning(f"⚠️ 需要注意 ({len(caution_list)}种)：")
                 for fid, fr in caution_list[:5]:
                     reasons = "；".join(fr.get("reasons", []))
                     st.markdown(f"- **{fid}**：{reasons}")
                 if len(caution_list) > 5:
                     st.caption(f"...还有 {len(caution_list) - 5} 种")
 
-            if recommended:
-                with st.expander(f"⭐ 优先推荐 ({len(recommended)}种) — 高铁、高营养、适合首尝"):
+            if suitable_list:
+                with st.expander(f"✅ 安全食材 ({len(suitable_list)}种)"):
                     cols = st.columns(4)
-                    for i, (fid, _) in enumerate(recommended):
-                        with cols[i % 4]:
-                            st.markdown(f"- {fid}")
-
-            if later_list:
-                with st.expander(f"🔜 可后续添加 ({len(later_list)}种) — 首轮辅食之后逐步引入"):
-                    cols = st.columns(4)
-                    for i, (fid, _) in enumerate(later_list):
+                    for i, (fid, _) in enumerate(suitable_list):
                         with cols[i % 4]:
                             st.markdown(f"- {fid}")
 
@@ -254,59 +235,31 @@ with tab2:
         safe_foods = []
         for fid, fr in food_results.items():
             if fr.get("tag") != "avoid":
-                # fid 可能是 id(food_001) 也可能是中文名，两种都试
-                food_data = st.session_state.kb.get_food(fid) or st.session_state.kb.get_food_by_name(fid)
+                food_data = st.session_state.kb.get_food_by_name(fid)
                 if food_data:
                     safe_foods.append({"food_data": food_data, "tag": fr.get("tag", "suitable")})
 
-        # 分开已尝试和推荐新食材
-        tried_names = set(tried_foods_raw) if tried_foods_raw else set()
-        tried_pool = [f for f in safe_foods if f["food_data"].get("name_zh") in tried_names]
-        new_pool = [f for f in safe_foods if f["food_data"].get("name_zh") not in tried_names]
-
-        # 新食材优先推荐高铁+该阶段关键品类
-        stage_for_rank = st.session_state.kb.get_age_stage(age_months)
-        key_nutrients = stage_for_rank.get("key_nutrients", ["铁"]) if stage_for_rank else ["铁"]
-        def new_food_score(item):
-            fd = item["food_data"]
-            s = 0
-            if fd.get("iron_rich"): s += 3
-            for n in key_nutrients:
-                if n in (fd.get("nutrients") or {}): s += 1
-            return s
-        new_pool.sort(key=new_food_score, reverse=True)
-        recommended_new = new_pool[:5]
-
-        # 合并：已尝试 + 推荐新食材
-        plan_foods = tried_pool + recommended_new
-
-        st.caption(f"已尝试 {len(tried_pool)} 种 + 推荐新食材 {len(recommended_new)} 种 = 共 {len(plan_foods)} 种可选")
-        if len(plan_foods) < 3:
-            st.info("💡 请先在侧边栏「已尝试食材」中选择更多宝宝吃过的食物")
+        st.caption(f"安全食材池：{len(safe_foods)} 种可用")
 
         gen_btn = st.button("🔄 生成/刷新周计划", type="primary")
 
         if gen_btn or "weekly_plan" not in st.session_state:
             with st.spinner("正在生成一周计划..."):
-                try:
-                    from rules.feedback import get_feedback_adjusted_foods
-                    adjusted = get_feedback_adjusted_foods(
-                        plan_foods, st.session_state.feedback_store, kb=st.session_state.kb
-                    )
-                    filtered = [f for f in adjusted if f.get("tag") != "avoid"]
+                # 应用反馈调整安全食材池
+                from rules.feedback import get_feedback_adjusted_foods
+                adjusted = get_feedback_adjusted_foods(
+                    safe_foods, st.session_state.feedback_store, kb=st.session_state.kb
+                )
+                # 过滤掉 avoid 的食材
+                filtered = [f for f in adjusted if f.get("tag") != "avoid"]
 
-                    stage = st.session_state.kb.get_age_stage(age_months)
-                    plan_result = st.session_state.plan_agent.process({
-                        "profile": baby_profile,
-                        "safe_foods": filtered if filtered else safe_foods,
-                        "stage": stage,
-                    })
-                    st.session_state.weekly_plan = plan_result
-                except Exception as e:
-                    st.error(f"生成计划失败: {e}")
-                    import traceback
-                    st.code(traceback.format_exc())
-                    st.session_state.weekly_plan = {"plan": [], "new_foods_this_week": [], "nutrition_notes": []}
+                stage = st.session_state.kb.get_age_stage(age_months)
+                plan_result = st.session_state.plan_agent.process({
+                    "profile": baby_profile,
+                    "safe_foods": filtered,
+                    "stage": stage,
+                })
+                st.session_state.weekly_plan = plan_result
 
         plan_result = st.session_state.weekly_plan
         plan = plan_result.get("plan", [])
@@ -328,9 +281,9 @@ with tab2:
                     is_new = day_data.get("is_new_food", False)
 
                     # 背景色
-                    bg = "#FFF3CD" if is_new else "#E8F5E9"
+                    bg = "#fff3e0" if is_new else "#f5f5f5"
                     st.markdown(
-                        f"""<div style='background:{bg};padding:8px;border-radius:6px;min-height:100px;color:#1a1a1a'>
+                        f"""<div style='background:{bg};padding:8px;border-radius:6px;min-height:100px'>
                         <b>{day_label}</b>{' 🆕' if is_new else ''}<br>
                         {'<br>'.join(foods) if foods else '—'}
                         </div>""",
@@ -352,56 +305,62 @@ with tab2:
             st.caption(plan_result.get("stage_label", ""))
 
         # ---- 反馈区域 ----
-        if plan:
-            st.markdown("---")
-            with st.expander("📝 宝宝反馈（记录吃新食物后的反应）", expanded=False):
-                # 从计划中提取所有食材供选择
-                all_plan_foods = []
-                for d in plan:
-                    for f in d.get("foods", []):
-                        if f not in all_plan_foods:
-                            all_plan_foods.append(f)
+        st.markdown("---")
+        st.subheader("📝 宝宝反馈")
+        st.caption("记录宝宝吃新食物后的反应，帮助系统调整后续推荐")
 
-                if all_plan_foods:
-                    col1, col2, col3 = st.columns(3)
-                    # 用 plan hash 避免 key 冲突
-                    plan_key = str(hash(str(plan)))[:6]
-                    with col1:
-                        fb_food = st.selectbox("食材", all_plan_foods, key=f"fb_food_{plan_key}")
-                    with col2:
-                        fb_reaction = st.selectbox(
-                            "反应",
-                            ["没问题", "轻微皮疹", "腹泻", "呕吐", "拒绝吃", "其他不适"],
-                            key=f"fb_reaction_{plan_key}",
-                        )
-                    with col3:
-                        fb_severity = st.selectbox(
-                            "严重程度",
-                            ["mild", "moderate", "severe"],
-                            format_func=lambda x: {"mild": "轻微", "moderate": "中度", "severe": "严重"}[x],
-                            key=f"fb_severity_{plan_key}",
-                        )
+        # 从计划中提取所有食材供选择
+        all_plan_foods = []
+        for d in plan:
+            for f in d.get("foods", []):
+                if f not in all_plan_foods:
+                    all_plan_foods.append(f)
 
-                    fb_notes = st.text_input("备注（可选）", placeholder="如：吃完2小时后脸上出红点", key=f"fb_notes_{plan_key}")
+        if all_plan_foods:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                fb_food = st.selectbox("食材", all_plan_foods, key="fb_food")
+            with col2:
+                fb_reaction = st.selectbox(
+                    "反应",
+                    ["没问题", "轻微皮疹", "腹泻", "呕吐", "拒绝吃", "其他不适"],
+                    key="fb_reaction",
+                )
+            with col3:
+                fb_severity = st.selectbox(
+                    "严重程度",
+                    ["mild", "moderate", "severe"],
+                    format_func=lambda x: {"mild": "轻微", "moderate": "中度", "severe": "严重"}[x],
+                    key="fb_severity",
+                )
 
-                    if st.button("📩 提交反馈", type="primary", key=f"fb_submit_{plan_key}"):
-                        reaction_map = {
-                            "没问题": "none", "轻微皮疹": "rash", "腹泻": "diarrhea",
-                            "呕吐": "vomiting", "拒绝吃": "refusal", "其他不适": "other",
-                        }
-                        st.session_state.feedback_store.add(
-                            food_name=fb_food,
-                            reaction=reaction_map.get(fb_reaction, "other"),
-                            severity=fb_severity,
-                            notes=fb_notes,
-                        )
-                        st.success(f"已记录「{fb_food}」的反馈")
-                        st.rerun()
+            fb_notes = st.text_input("备注（可选）", placeholder="如：吃完2小时后脸上出红点", key="fb_notes")
+
+            if st.button("📩 提交反馈", type="primary"):
+                reaction_map = {
+                    "没问题": "none", "轻微皮疹": "rash", "腹泻": "diarrhea",
+                    "呕吐": "vomiting", "拒绝吃": "refusal", "其他不适": "other",
+                }
+                st.session_state.feedback_store.add(
+                    food_name=fb_food,
+                    reaction=reaction_map.get(fb_reaction, "other"),
+                    severity=fb_severity,
+                    notes=fb_notes,
+                )
+                # 也加到 session 历史里
+                st.session_state.feedback_history.append({
+                    "food": fb_food,
+                    "reaction": fb_reaction,
+                    "severity": fb_severity,
+                    "date": "刚刚",
+                })
+                st.success(f"已记录「{fb_food}」的反馈")
+                st.rerun()
 
         # ---- 反馈历史 ----
         summary = st.session_state.feedback_store.summary
         if summary["total"] > 0:
-            with st.expander(f"📋 反馈历史（{summary['total']}条记录，覆盖{summary['foods_tracked']}种食材）", expanded=False):
+            with st.expander(f"📋 反馈历史（{summary['total']}条记录，覆盖{summary['foods_tracked']}种食材）"):
                 if summary["avoid_foods"]:
                     st.error(f"🚫 已标记避免：{'、'.join(summary['avoid_foods'])}")
                 if summary["caution_foods"]:
@@ -412,14 +371,16 @@ with tab2:
                     icon = {"none": "✅", "rash": "🔴", "diarrhea": "🟠", "vomiting": "🟠", "refusal": "🟡", "other": "⚪"}
                     sev = {"mild": "轻", "moderate": "中", "severe": "重"}
                     rx_label = {"none": "没问题", "rash": "皮疹", "diarrhea": "腹泻", "vomiting": "呕吐", "refusal": "拒绝", "other": "不适"}
+                    icon_str = icon.get(r.get("reaction", ""), "")
+                    sev_str = sev.get(r.get("severity", ""), "")
+                    rx_str = rx_label.get(r.get("reaction", ""), r.get("reaction", ""))
                     st.caption(
-                        f"{icon.get(r.get('reaction', ''), '')} {r.get('date', '')} | "
-                        f"**{r.get('food_name', '')}**: {rx_label.get(r.get('reaction', ''), r.get('reaction', ''))}"
-                        f" ({sev.get(r.get('severity', ''), '')})"
+                        f"{icon_str} {r.get('date', '')} | "
+                        f"**{r.get('food_name', '')}**: {rx_str} ({sev_str})"
                         f"{' — ' + r.get('notes', '') if r.get('notes') else ''}"
                     )
 
-                if st.button("🗑️ 清除所有反馈", key="fb_clear_all"):
+                if st.button("🗑️ 清除所有反馈"):
                     for r in list(st.session_state.feedback_store.get_all()):
                         st.session_state.feedback_store.delete(r["id"])
                     st.session_state.feedback_history = []
@@ -525,6 +486,8 @@ with tab3:
 with tab4:
     from ui.pages.chat import render_chat_page
 
+    st.caption("💡 也可以点击右下角的 Boss Baby 悬浮球打开问答窗口~")
+
     # 如果有宝宝画像，注入背景信息
     if baby_profile.get("age_months", 0) > 0:
         st.caption(
@@ -534,6 +497,11 @@ with tab4:
         )
 
     render_chat_page(st.session_state.chat_agent, kb=st.session_state.kb)
+
+
+# ===== Boss Baby 悬浮球 + 智能问答浮窗 =====
+from ui.components.chat_float import render_chat_float
+render_chat_float(st.session_state.chat_agent, kb=st.session_state.kb)
 
 
 # ===== 底部 =====

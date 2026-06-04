@@ -70,7 +70,7 @@ def render_chat_page(chat_agent, kb=None):
                 ],
             })
 
-        answer = result.get("answer", "抱歉，我暂时无法回答这个问题。")
+        answer = result.get("answer") or "抱歉，我暂时无法回答这个问题。"
         sources = result.get("sources", [])
 
         # 显示助手回答

@@ -88,8 +88,9 @@ class OpenAIAdapter(BaseLLM):
                 else:
                     # 最后一次失败，打印但不崩溃
                     err_msg = str(e)[:200]
-                    print(f"[LLM Error] attempt {attempt+1}/3: {err_msg}")
-                    return ""
+                    import sys
+                    print(f"[LLM Error] attempt {attempt+1}/3: {err_msg}", file=sys.stderr)
+                    return f"[LLM调用失败] {err_msg}"
 
         return ""
 

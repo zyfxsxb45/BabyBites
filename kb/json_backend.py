@@ -71,7 +71,7 @@ class JSONKnowledgeBase:
     def _get_db(self) -> sqlite3.Connection:
         """懒加载 SQLite 连接"""
         if self._conn is None:
-            self._conn = sqlite3.connect(str(DB_PATH))
+            self._conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             # 首次使用自动建表
             schema = DATA_DIR.parent / "database" / "schema.sql"
