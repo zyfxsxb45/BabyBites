@@ -187,12 +187,17 @@ with tab1:
 
             for fid, fr in food_results.items():
                 tag = fr.get("tag", "unknown")
+                # fid 可能是 id 也可能是中文名，都试试
+                display_name = fid
+                food = st.session_state.kb.get_food(fid) or st.session_state.kb.get_food_by_name(fid)
+                if food:
+                    display_name = food.get("name_zh", fid)
                 if tag == "avoid":
-                    avoid_list.append((fid, fr))
+                    avoid_list.append((display_name, fr))
                 elif tag == "caution":
-                    caution_list.append((fid, fr))
+                    caution_list.append((display_name, fr))
                 else:
-                    suitable_list.append((fid, fr))
+                    suitable_list.append((display_name, fr))
 
             if avoid_list:
                 st.error(f"🚫 必须避免 ({len(avoid_list)}种)：")
@@ -235,7 +240,8 @@ with tab2:
         safe_foods = []
         for fid, fr in food_results.items():
             if fr.get("tag") != "avoid":
-                food_data = st.session_state.kb.get_food_by_name(fid)
+                # fid 可能是 id(food_001) 也可能是中文名，两种都试
+                food_data = st.session_state.kb.get_food(fid) or st.session_state.kb.get_food_by_name(fid)
                 if food_data:
                     safe_foods.append({"food_data": food_data, "tag": fr.get("tag", "suitable")})
 
