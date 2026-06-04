@@ -183,40 +183,54 @@ with tab1:
             st.subheader("🍽️ 食材安全标签")
             avoid_list = []
             caution_list = []
-            suitable_list = []
+            recommended = []
+            later_list = []
 
             for fid, fr in food_results.items():
                 tag = fr.get("tag", "unknown")
-                # fid 可能是 id 也可能是中文名，都试试
                 display_name = fid
                 food = st.session_state.kb.get_food(fid) or st.session_state.kb.get_food_by_name(fid)
                 if food:
                     display_name = food.get("name_zh", fid)
+                    # 高敏食材即使规则判 suitable，也放进 caution 提醒
+                    if food.get("potential_allergen") and tag == "suitable":
+                        tag = "caution"
+                        fr["reasons"] = fr.get("reasons", []) + ["常见过敏原，首次引入需观察"]
+
                 if tag == "avoid":
                     avoid_list.append((display_name, fr))
                 elif tag == "caution":
                     caution_list.append((display_name, fr))
+                elif food and food.get("iron_rich"):
+                    recommended.append((display_name, fr))
                 else:
-                    suitable_list.append((display_name, fr))
+                    later_list.append((display_name, fr))
 
             if avoid_list:
-                st.error(f"🚫 必须避免 ({len(avoid_list)}种)：")
+                st.error(f"🚫 需避免 ({len(avoid_list)}种)：")
                 for fid, fr in avoid_list:
                     reasons = "；".join(fr.get("reasons", []))
                     st.markdown(f"- **{fid}**：{reasons}")
 
             if caution_list:
-                st.warning(f"⚠️ 需要注意 ({len(caution_list)}种)：")
+                st.warning(f"⚠️ 需谨慎引入 ({len(caution_list)}种)：")
                 for fid, fr in caution_list[:5]:
                     reasons = "；".join(fr.get("reasons", []))
                     st.markdown(f"- **{fid}**：{reasons}")
                 if len(caution_list) > 5:
                     st.caption(f"...还有 {len(caution_list) - 5} 种")
 
-            if suitable_list:
-                with st.expander(f"✅ 安全食材 ({len(suitable_list)}种)"):
+            if recommended:
+                with st.expander(f"⭐ 优先推荐 ({len(recommended)}种) — 高铁、高营养、适合首尝"):
                     cols = st.columns(4)
-                    for i, (fid, _) in enumerate(suitable_list):
+                    for i, (fid, _) in enumerate(recommended):
+                        with cols[i % 4]:
+                            st.markdown(f"- {fid}")
+
+            if later_list:
+                with st.expander(f"🔜 可后续添加 ({len(later_list)}种) — 首轮辅食之后逐步引入"):
+                    cols = st.columns(4)
+                    for i, (fid, _) in enumerate(later_list):
                         with cols[i % 4]:
                             st.markdown(f"- {fid}")
 
