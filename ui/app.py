@@ -245,21 +245,25 @@ with tab2:
 
         if gen_btn or "weekly_plan" not in st.session_state:
             with st.spinner("正在生成一周计划..."):
-                # 应用反馈调整安全食材池
-                from rules.feedback import get_feedback_adjusted_foods
-                adjusted = get_feedback_adjusted_foods(
-                    safe_foods, st.session_state.feedback_store, kb=st.session_state.kb
-                )
-                # 过滤掉 avoid 的食材
-                filtered = [f for f in adjusted if f.get("tag") != "avoid"]
+                try:
+                    from rules.feedback import get_feedback_adjusted_foods
+                    adjusted = get_feedback_adjusted_foods(
+                        safe_foods, st.session_state.feedback_store, kb=st.session_state.kb
+                    )
+                    filtered = [f for f in adjusted if f.get("tag") != "avoid"]
 
-                stage = st.session_state.kb.get_age_stage(age_months)
-                plan_result = st.session_state.plan_agent.process({
-                    "profile": baby_profile,
-                    "safe_foods": filtered,
-                    "stage": stage,
-                })
-                st.session_state.weekly_plan = plan_result
+                    stage = st.session_state.kb.get_age_stage(age_months)
+                    plan_result = st.session_state.plan_agent.process({
+                        "profile": baby_profile,
+                        "safe_foods": filtered if filtered else safe_foods,
+                        "stage": stage,
+                    })
+                    st.session_state.weekly_plan = plan_result
+                except Exception as e:
+                    st.error(f"生成计划失败: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+                    st.session_state.weekly_plan = {"plan": [], "new_foods_this_week": [], "nutrition_notes": []}
 
         plan_result = st.session_state.weekly_plan
         plan = plan_result.get("plan", [])
@@ -305,62 +309,56 @@ with tab2:
             st.caption(plan_result.get("stage_label", ""))
 
         # ---- 反馈区域 ----
-        st.markdown("---")
-        st.subheader("📝 宝宝反馈")
-        st.caption("记录宝宝吃新食物后的反应，帮助系统调整后续推荐")
+        if plan:
+            st.markdown("---")
+            with st.expander("📝 宝宝反馈（记录吃新食物后的反应）", expanded=False):
+                # 从计划中提取所有食材供选择
+                all_plan_foods = []
+                for d in plan:
+                    for f in d.get("foods", []):
+                        if f not in all_plan_foods:
+                            all_plan_foods.append(f)
 
-        # 从计划中提取所有食材供选择
-        all_plan_foods = []
-        for d in plan:
-            for f in d.get("foods", []):
-                if f not in all_plan_foods:
-                    all_plan_foods.append(f)
+                if all_plan_foods:
+                    col1, col2, col3 = st.columns(3)
+                    # 用 plan hash 避免 key 冲突
+                    plan_key = str(hash(str(plan)))[:6]
+                    with col1:
+                        fb_food = st.selectbox("食材", all_plan_foods, key=f"fb_food_{plan_key}")
+                    with col2:
+                        fb_reaction = st.selectbox(
+                            "反应",
+                            ["没问题", "轻微皮疹", "腹泻", "呕吐", "拒绝吃", "其他不适"],
+                            key=f"fb_reaction_{plan_key}",
+                        )
+                    with col3:
+                        fb_severity = st.selectbox(
+                            "严重程度",
+                            ["mild", "moderate", "severe"],
+                            format_func=lambda x: {"mild": "轻微", "moderate": "中度", "severe": "严重"}[x],
+                            key=f"fb_severity_{plan_key}",
+                        )
 
-        if all_plan_foods:
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                fb_food = st.selectbox("食材", all_plan_foods, key="fb_food")
-            with col2:
-                fb_reaction = st.selectbox(
-                    "反应",
-                    ["没问题", "轻微皮疹", "腹泻", "呕吐", "拒绝吃", "其他不适"],
-                    key="fb_reaction",
-                )
-            with col3:
-                fb_severity = st.selectbox(
-                    "严重程度",
-                    ["mild", "moderate", "severe"],
-                    format_func=lambda x: {"mild": "轻微", "moderate": "中度", "severe": "严重"}[x],
-                    key="fb_severity",
-                )
+                    fb_notes = st.text_input("备注（可选）", placeholder="如：吃完2小时后脸上出红点", key=f"fb_notes_{plan_key}")
 
-            fb_notes = st.text_input("备注（可选）", placeholder="如：吃完2小时后脸上出红点", key="fb_notes")
-
-            if st.button("📩 提交反馈", type="primary"):
-                reaction_map = {
-                    "没问题": "none", "轻微皮疹": "rash", "腹泻": "diarrhea",
-                    "呕吐": "vomiting", "拒绝吃": "refusal", "其他不适": "other",
-                }
-                st.session_state.feedback_store.add(
-                    food_name=fb_food,
-                    reaction=reaction_map.get(fb_reaction, "other"),
-                    severity=fb_severity,
-                    notes=fb_notes,
-                )
-                # 也加到 session 历史里
-                st.session_state.feedback_history.append({
-                    "food": fb_food,
-                    "reaction": fb_reaction,
-                    "severity": fb_severity,
-                    "date": "刚刚",
-                })
-                st.success(f"已记录「{fb_food}」的反馈")
-                st.rerun()
+                    if st.button("📩 提交反馈", type="primary", key=f"fb_submit_{plan_key}"):
+                        reaction_map = {
+                            "没问题": "none", "轻微皮疹": "rash", "腹泻": "diarrhea",
+                            "呕吐": "vomiting", "拒绝吃": "refusal", "其他不适": "other",
+                        }
+                        st.session_state.feedback_store.add(
+                            food_name=fb_food,
+                            reaction=reaction_map.get(fb_reaction, "other"),
+                            severity=fb_severity,
+                            notes=fb_notes,
+                        )
+                        st.success(f"已记录「{fb_food}」的反馈")
+                        st.rerun()
 
         # ---- 反馈历史 ----
         summary = st.session_state.feedback_store.summary
         if summary["total"] > 0:
-            with st.expander(f"📋 反馈历史（{summary['total']}条记录，覆盖{summary['foods_tracked']}种食材）"):
+            with st.expander(f"📋 反馈历史（{summary['total']}条记录，覆盖{summary['foods_tracked']}种食材）", expanded=False):
                 if summary["avoid_foods"]:
                     st.error(f"🚫 已标记避免：{'、'.join(summary['avoid_foods'])}")
                 if summary["caution_foods"]:
@@ -371,16 +369,14 @@ with tab2:
                     icon = {"none": "✅", "rash": "🔴", "diarrhea": "🟠", "vomiting": "🟠", "refusal": "🟡", "other": "⚪"}
                     sev = {"mild": "轻", "moderate": "中", "severe": "重"}
                     rx_label = {"none": "没问题", "rash": "皮疹", "diarrhea": "腹泻", "vomiting": "呕吐", "refusal": "拒绝", "other": "不适"}
-                    icon_str = icon.get(r.get("reaction", ""), "")
-                    sev_str = sev.get(r.get("severity", ""), "")
-                    rx_str = rx_label.get(r.get("reaction", ""), r.get("reaction", ""))
                     st.caption(
-                        f"{icon_str} {r.get('date', '')} | "
-                        f"**{r.get('food_name', '')}**: {rx_str} ({sev_str})"
+                        f"{icon.get(r.get('reaction', ''), '')} {r.get('date', '')} | "
+                        f"**{r.get('food_name', '')}**: {rx_label.get(r.get('reaction', ''), r.get('reaction', ''))}"
+                        f" ({sev.get(r.get('severity', ''), '')})"
                         f"{' — ' + r.get('notes', '') if r.get('notes') else ''}"
                     )
 
-                if st.button("🗑️ 清除所有反馈"):
+                if st.button("🗑️ 清除所有反馈", key="fb_clear_all"):
                     for r in list(st.session_state.feedback_store.get_all()):
                         st.session_state.feedback_store.delete(r["id"])
                     st.session_state.feedback_history = []
