@@ -245,7 +245,30 @@ with tab2:
                 if food_data:
                     safe_foods.append({"food_data": food_data, "tag": fr.get("tag", "suitable")})
 
-        st.caption(f"安全食材池：{len(safe_foods)} 种可用")
+        # 分开已尝试和推荐新食材
+        tried_names = set(tried_foods_raw) if tried_foods_raw else set()
+        tried_pool = [f for f in safe_foods if f["food_data"].get("name_zh") in tried_names]
+        new_pool = [f for f in safe_foods if f["food_data"].get("name_zh") not in tried_names]
+
+        # 新食材优先推荐高铁+该阶段关键品类
+        stage_for_rank = st.session_state.kb.get_age_stage(age_months)
+        key_nutrients = stage_for_rank.get("key_nutrients", ["铁"]) if stage_for_rank else ["铁"]
+        def new_food_score(item):
+            fd = item["food_data"]
+            s = 0
+            if fd.get("iron_rich"): s += 3
+            for n in key_nutrients:
+                if n in (fd.get("nutrients") or {}): s += 1
+            return s
+        new_pool.sort(key=new_food_score, reverse=True)
+        recommended_new = new_pool[:5]
+
+        # 合并：已尝试 + 推荐新食材
+        plan_foods = tried_pool + recommended_new
+
+        st.caption(f"已尝试 {len(tried_pool)} 种 + 推荐新食材 {len(recommended_new)} 种 = 共 {len(plan_foods)} 种可选")
+        if len(plan_foods) < 3:
+            st.info("💡 请先在侧边栏「已尝试食材」中选择更多宝宝吃过的食物")
 
         gen_btn = st.button("🔄 生成/刷新周计划", type="primary")
 
@@ -254,7 +277,7 @@ with tab2:
                 try:
                     from rules.feedback import get_feedback_adjusted_foods
                     adjusted = get_feedback_adjusted_foods(
-                        safe_foods, st.session_state.feedback_store, kb=st.session_state.kb
+                        plan_foods, st.session_state.feedback_store, kb=st.session_state.kb
                     )
                     filtered = [f for f in adjusted if f.get("tag") != "avoid"]
 
@@ -291,9 +314,9 @@ with tab2:
                     is_new = day_data.get("is_new_food", False)
 
                     # 背景色
-                    bg = "#fff3e0" if is_new else "#f5f5f5"
+                    bg = "#FFF3CD" if is_new else "#E8F5E9"
                     st.markdown(
-                        f"""<div style='background:{bg};padding:8px;border-radius:6px;min-height:100px'>
+                        f"""<div style='background:{bg};padding:8px;border-radius:6px;min-height:100px;color:#1a1a1a'>
                         <b>{day_label}</b>{' 🆕' if is_new else ''}<br>
                         {'<br>'.join(foods) if foods else '—'}
                         </div>""",
