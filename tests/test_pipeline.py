@@ -185,8 +185,8 @@ class TestFullPipeline:
     def test_kb_stats(self):
         """知识库统计"""
         stats = self.kb.get_stats()
-        assert stats["foods_count"] == 20
-        assert stats["allergens_count"] == 8
+        assert stats["foods_count"] == 40
+        assert stats["allergens_count"] == 9
         assert stats["nutrients_count"] == 7
 
 

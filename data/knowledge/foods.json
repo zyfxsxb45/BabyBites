@@ -1,6 +1,6 @@
 {
-  "_schema_version": "1.0",
-  "_description": "食材主数据。营养数据来源：中国食物成分表(1981) / USDA FoodData / CDC指南。",
+  "_schema_version": "1.1",
+  "_description": "食材主数据 40种。营养数据来源：中国食物成分表(1981) / USDA FoodData Central / CDC指南 / WHO指南。",
   "_source": "公共卫生科学数据中心 / CDC / WHO / USDA",
 
   "猪肝": {
@@ -135,7 +135,7 @@
     "source": "中国食物成分表"
   },
 
-  "猪肉": {
+  "猪肉(瘦)": {
     "id": "food_007",
     "name_zh": "猪肉(瘦)",
     "name_en": "pork lean",
@@ -440,5 +440,453 @@
     "tags": ["高铁", "易消化", "无麸质"],
     "notes_zh": "煮成小米粥或小米糊，易消化是传统婴儿辅食谷物。无麸质。",
     "source": "中国食物成分表 / CDC指南"
+  },
+
+  "大米粉": {
+    "id": "food_021",
+    "name_zh": "大米粉",
+    "name_en": "rice cereal",
+    "category": "grains",
+    "sub_category": null,
+    "nutrients": {
+      "铁": {"value": 6.7, "unit": "mg/100g"},
+      "蛋白质": {"value": 6.0, "unit": "g/100g"},
+      "锌": {"value": 1.0, "unit": "mg/100g"},
+      "钙": {"value": 120, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": true,
+    "tags": ["高铁", "第一口辅食", "低敏", "无麸质"],
+    "notes_zh": "婴儿强化铁米粉，通常为宝宝第一口辅食。选单一谷物无添加糖的。用母乳/配方奶/温水冲调。",
+    "source": "CDC指南 / WHO指南 / USDA"
+  },
+
+  "玉米": {
+    "id": "food_022",
+    "name_zh": "玉米",
+    "name_en": "corn",
+    "category": "grains",
+    "sub_category": null,
+    "nutrients": {
+      "膳食纤维": {"value": 7.3, "unit": "g/100g"},
+      "蛋白质": {"value": 8.1, "unit": "g/100g"},
+      "铁": {"value": 2.3, "unit": "mg/100g"},
+      "锌": {"value": 1.7, "unit": "mg/100g"},
+      "胡萝卜素": {"value": 0.34, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高纤维", "谷物", "自然界甜味"],
+    "notes_zh": "蒸熟后刮下玉米粒捣泥或用研磨碗磨碎。注意玉米皮不易消化。",
+    "source": "USDA FoodData Central / 中国食物成分表"
+  },
+
+  "紫薯": {
+    "id": "food_023",
+    "name_zh": "紫薯",
+    "name_en": "purple sweet potato",
+    "category": "vegetables",
+    "sub_category": "根茎类",
+    "nutrients": {
+      "胡萝卜素": {"value": 8.51, "unit": "mg/100g"},
+      "膳食纤维": {"value": 3.0, "unit": "g/100g"},
+      "钾": {"value": 337, "unit": "mg/100g"},
+      "铁": {"value": 0.5, "unit": "mg/100g"},
+      "花青素": {"value": 20.0, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高胡萝卜素", "花青素", "天然甜味"],
+    "notes_zh": "蒸熟捣泥，自带甜味和漂亮紫色，宝宝接受度高。富含花青素抗氧化。",
+    "source": "中国食物成分表 / USDA"
+  },
+
+  "山药": {
+    "id": "food_024",
+    "name_zh": "山药",
+    "name_en": "Chinese yam",
+    "category": "vegetables",
+    "sub_category": "根茎类",
+    "nutrients": {
+      "蛋白质": {"value": 1.5, "unit": "g/100g"},
+      "钾": {"value": 452, "unit": "mg/100g"},
+      "铁": {"value": 0.3, "unit": "mg/100g"},
+      "锌": {"value": 0.27, "unit": "mg/100g"},
+      "膳食纤维": {"value": 1.4, "unit": "g/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["健脾养胃", "高钾", "易消化"],
+    "notes_zh": "蒸熟后捣泥，口感黏滑。传统认为健脾养胃，适合消化弱的宝宝。",
+    "source": "中国食物成分表"
+  },
+
+  "花椰菜": {
+    "id": "food_025",
+    "name_zh": "花椰菜",
+    "name_en": "cauliflower",
+    "category": "vegetables",
+    "sub_category": "花菜类",
+    "nutrients": {
+      "维生素C": {"value": 48, "unit": "mg/100g"},
+      "膳食纤维": {"value": 2.5, "unit": "g/100g"},
+      "钙": {"value": 22, "unit": "mg/100g"},
+      "铁": {"value": 0.4, "unit": "mg/100g"},
+      "蛋白质": {"value": 2.0, "unit": "g/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高VC", "高纤维", "低敏"],
+    "notes_zh": "蒸熟后切碎捣泥，口感细腻。低敏蔬菜，适合早期添加。",
+    "source": "USDA FoodData Central"
+  },
+
+  "油菜": {
+    "id": "food_026",
+    "name_zh": "油菜",
+    "name_en": "bok choy",
+    "category": "vegetables",
+    "sub_category": "叶菜",
+    "nutrients": {
+      "钙": {"value": 108, "unit": "mg/100g"},
+      "铁": {"value": 0.8, "unit": "mg/100g"},
+      "维生素C": {"value": 36, "unit": "mg/100g"},
+      "胡萝卜素": {"value": 0.62, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高钙", "高VC", "绿叶蔬菜"],
+    "notes_zh": "焯水后切碎。钙含量在蔬菜中名列前茅，适合母乳宝宝补钙。",
+    "source": "中国食物成分表"
+  },
+
+  "豌豆": {
+    "id": "food_027",
+    "name_zh": "豌豆",
+    "name_en": "green peas",
+    "category": "legumes",
+    "sub_category": null,
+    "nutrients": {
+      "蛋白质": {"value": 5.4, "unit": "g/100g"},
+      "铁": {"value": 1.5, "unit": "mg/100g"},
+      "锌": {"value": 0.7, "unit": "mg/100g"},
+      "膳食纤维": {"value": 4.5, "unit": "g/100g"},
+      "维生素C": {"value": 40, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["植物蛋白", "高纤维", "高铁"],
+    "notes_zh": "煮熟后捣泥，略带甜味。含植物蛋白和铁，可搭配谷物增加蛋白互补。",
+    "source": "USDA FoodData Central / 中国食物成分表"
+  },
+
+  "冬瓜": {
+    "id": "food_028",
+    "name_zh": "冬瓜",
+    "name_en": "wax gourd",
+    "category": "vegetables",
+    "sub_category": "瓜类",
+    "nutrients": {
+      "维生素C": {"value": 18, "unit": "mg/100g"},
+      "钾": {"value": 136, "unit": "mg/100g"},
+      "膳食纤维": {"value": 0.7, "unit": "g/100g"},
+      "铁": {"value": 0.2, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["清淡", "利尿", "低敏"],
+    "notes_zh": "蒸熟捣泥，口感清淡水分足。夏季辅食好选择，低敏。",
+    "source": "中国食物成分表"
+  },
+
+  "梨": {
+    "id": "food_029",
+    "name_zh": "梨",
+    "name_en": "pear",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "膳食纤维": {"value": 3.1, "unit": "g/100g"},
+      "维生素C": {"value": 4.3, "unit": "mg/100g"},
+      "钾": {"value": 116, "unit": "mg/100g"},
+      "铁": {"value": 0.2, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["润肺", "高纤维", "低敏水果"],
+    "notes_zh": "蒸熟后捣泥或刮泥。含山梨醇有助肠道蠕动，是苹果的良好替代。",
+    "source": "中国食物成分表 / USDA"
+  },
+
+  "蓝莓": {
+    "id": "food_030",
+    "name_zh": "蓝莓",
+    "name_en": "blueberry",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "维生素C": {"value": 9.7, "unit": "mg/100g"},
+      "膳食纤维": {"value": 2.4, "unit": "g/100g"},
+      "铁": {"value": 0.3, "unit": "mg/100g"},
+      "花青素": {"value": 163, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["花青素", "抗氧化", "护眼"],
+    "notes_zh": "蒸煮后捣泥或用研磨碗处理。花青素含量极高，有助视力发育。皮可能难消化，建议研磨充分。",
+    "source": "USDA FoodData Central"
+  },
+
+  "草莓": {
+    "id": "food_031",
+    "name_zh": "草莓",
+    "name_en": "strawberry",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "维生素C": {"value": 59, "unit": "mg/100g"},
+      "膳食纤维": {"value": 2.0, "unit": "g/100g"},
+      "铁": {"value": 0.4, "unit": "mg/100g"},
+      "钙": {"value": 16, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": true,
+    "min_age_months": 8,
+    "texture_stage": "mashed",
+    "iron_rich": false,
+    "tags": ["高VC", "高抗氧化", "注意过敏"],
+    "notes_zh": "少数婴儿对草莓有口腔过敏反应。建议8月龄后少量引入，先去籽捣泥。一次一颗观察有无红疹。",
+    "source": "USDA FoodData Central / CDC指南"
+  },
+
+  "橙子": {
+    "id": "food_032",
+    "name_zh": "橙子",
+    "name_en": "orange",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "维生素C": {"value": 53, "unit": "mg/100g"},
+      "膳食纤维": {"value": 2.4, "unit": "g/100g"},
+      "钙": {"value": 40, "unit": "mg/100g"},
+      "铁": {"value": 0.1, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 8,
+    "texture_stage": "mashed",
+    "iron_rich": false,
+    "tags": ["高VC", "促铁吸收"],
+    "notes_zh": "建议8月龄后尝试，酸性可能刺激宝宝肠胃。去籽榨汁兑水或刮果肉。搭配高铁食材可促进铁吸收。",
+    "source": "USDA FoodData Central"
+  },
+
+  "木瓜": {
+    "id": "food_033",
+    "name_zh": "木瓜",
+    "name_en": "papaya",
+    "category": "fruits",
+    "sub_category": null,
+    "nutrients": {
+      "维生素C": {"value": 60, "unit": "mg/100g"},
+      "胡萝卜素": {"value": 0.85, "unit": "mg/100g"},
+      "膳食纤维": {"value": 1.7, "unit": "g/100g"},
+      "钙": {"value": 20, "unit": "mg/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高VC", "助消化", "天然甜味"],
+    "notes_zh": "熟透的木瓜质地柔软可直接刮泥。含木瓜蛋白酶有助消化。选自然熟透的避免催熟剂。",
+    "source": "USDA FoodData Central"
+  },
+
+  "虾仁": {
+    "id": "food_034",
+    "name_zh": "虾仁",
+    "name_en": "shrimp",
+    "category": "seafood",
+    "sub_category": "甲壳类",
+    "nutrients": {
+      "蛋白质": {"value": 18.6, "unit": "g/100g"},
+      "锌": {"value": 1.1, "unit": "mg/100g"},
+      "铁": {"value": 0.5, "unit": "mg/100g"},
+      "钙": {"value": 99, "unit": "mg/100g"},
+      "碘": {"value": 47, "unit": "μg/100g"}
+    },
+    "allergen": "虾",
+    "potential_allergen": true,
+    "min_age_months": 8,
+    "texture_stage": "mashed",
+    "iron_rich": false,
+    "tags": ["高蛋白", "高钙", "甲壳类过敏原"],
+    "notes_zh": "虾是常见过敏原，建议8月龄后谨慎引入。彻底煮熟去虾线剁成泥。首次1/4只观察3-5天。",
+    "source": "中国食物成分表 / USDA"
+  },
+
+  "带鱼": {
+    "id": "food_035",
+    "name_zh": "带鱼",
+    "name_en": "hairtail",
+    "category": "fish",
+    "sub_category": "海鱼",
+    "nutrients": {
+      "蛋白质": {"value": 17.7, "unit": "g/100g"},
+      "DHA": {"value": 0.22, "unit": "g/100g"},
+      "铁": {"value": 0.7, "unit": "mg/100g"},
+      "锌": {"value": 0.8, "unit": "mg/100g"},
+      "钙": {"value": 31, "unit": "mg/100g"}
+    },
+    "allergen": "鱼类",
+    "potential_allergen": true,
+    "min_age_months": 7,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高蛋白", "海鱼", "常见餐桌鱼"],
+    "notes_zh": "中国家庭常见海鱼，价格亲民。彻底去刺后蒸熟捣泥。鱼类过敏需首次小量试。",
+    "source": "中国食物成分表"
+  },
+
+  "鸭肉": {
+    "id": "food_036",
+    "name_zh": "鸭肉",
+    "name_en": "duck",
+    "category": "poultry",
+    "sub_category": null,
+    "nutrients": {
+      "蛋白质": {"value": 15.5, "unit": "g/100g"},
+      "铁": {"value": 2.2, "unit": "mg/100g"},
+      "锌": {"value": 1.3, "unit": "mg/100g"},
+      "B族维生素": {"value": 0.8, "unit": "综合/100g"}
+    },
+    "allergen": null,
+    "potential_allergen": false,
+    "min_age_months": 6,
+    "texture_stage": "puree",
+    "iron_rich": false,
+    "tags": ["高铁", "禽肉", "温补"],
+    "notes_zh": "选鸭胸肉，去皮去脂后蒸熟剁泥。铁含量高于鸡肉。",
+    "source": "中国食物成分表"
+  },
+
+  "酸奶": {
+    "id": "food_037",
+    "name_zh": "酸奶",
+    "name_en": "yogurt",
+    "category": "dairy",
+    "sub_category": null,
+    "nutrients": {
+      "钙": {"value": 120, "unit": "mg/100g"},
+      "蛋白质": {"value": 3.5, "unit": "g/100g"},
+      "锌": {"value": 0.5, "unit": "mg/100g"},
+      "益生菌": {"value": 1.0, "unit": "亿CFU/100g"}
+    },
+    "allergen": "牛奶",
+    "potential_allergen": true,
+    "min_age_months": 8,
+    "texture_stage": "mashed",
+    "iron_rich": false,
+    "tags": ["高钙", "益生菌", "乳制品"],
+    "notes_zh": "选无添加糖的全脂原味酸奶。建议8月龄后尝试，乳糖不耐受或牛奶蛋白过敏需避开。首次一小勺。",
+    "source": "CDC指南 / USDA"
+  },
+
+  "奶酪": {
+    "id": "food_038",
+    "name_zh": "奶酪",
+    "name_en": "cheese",
+    "category": "dairy",
+    "sub_category": null,
+    "nutrients": {
+      "钙": {"value": 700, "unit": "mg/100g"},
+      "蛋白质": {"value": 25.0, "unit": "g/100g"},
+      "锌": {"value": 3.5, "unit": "mg/100g"},
+      "脂肪": {"value": 30.0, "unit": "g/100g"}
+    },
+    "allergen": "牛奶",
+    "potential_allergen": true,
+    "min_age_months": 9,
+    "texture_stage": "finger_food",
+    "iron_rich": false,
+    "tags": ["高钙", "高蛋白", "乳制品"],
+    "notes_zh": "选低钠的瑞士奶酪或切达奶酪（钠<200mg/100g）。9月龄后可切成小条作手指食物。牛奶蛋白过敏禁用。",
+    "source": "USDA FoodData Central / CDC指南"
+  },
+
+  "核桃": {
+    "id": "food_039",
+    "name_zh": "核桃",
+    "name_en": "walnut",
+    "category": "nuts_seeds",
+    "sub_category": null,
+    "nutrients": {
+      "α-亚麻酸": {"value": 9.1, "unit": "g/100g"},
+      "蛋白质": {"value": 15.2, "unit": "g/100g"},
+      "锌": {"value": 2.2, "unit": "mg/100g"},
+      "铁": {"value": 2.7, "unit": "mg/100g"},
+      "钙": {"value": 56, "unit": "mg/100g"}
+    },
+    "allergen": "坚果",
+    "potential_allergen": true,
+    "min_age_months": 9,
+    "texture_stage": "mashed",
+    "iron_rich": false,
+    "tags": ["Omega-3植物源", "高锌", "坚果过敏原"],
+    "notes_zh": "必须磨成细粉末添加（整颗有窒息风险！）。坚果过敏需首次极少量试。含植物Omega-3对大脑发育有益。",
+    "source": "USDA FoodData Central / 中国食物成分表"
+  },
+
+  "芝麻粉": {
+    "id": "food_040",
+    "name_zh": "芝麻粉",
+    "name_en": "sesame powder",
+    "category": "nuts_seeds",
+    "sub_category": "种子",
+    "nutrients": {
+      "钙": {"value": 780, "unit": "mg/100g"},
+      "铁": {"value": 7.0, "unit": "mg/100g"},
+      "锌": {"value": 4.8, "unit": "mg/100g"},
+      "蛋白质": {"value": 19.6, "unit": "g/100g"}
+    },
+    "allergen": "芝麻",
+    "potential_allergen": true,
+    "min_age_months": 9,
+    "texture_stage": "mashed",
+    "iron_rich": true,
+    "tags": ["高钙", "高铁", "高锌", "种子过敏原"],
+    "notes_zh": "磨成粉掺入米糊或粥里。钙含量极高是牛奶的6倍。芝麻是新兴高敏原，首次少量观察。",
+    "source": "中国食物成分表"
   }
 }

@@ -59,8 +59,14 @@
   },
   "nuts_seeds": {
     "label": "坚果与种子",
-    "includes": ["花生酱", "杏仁酱", "核桃粉", "芝麻酱"],
-    "key_nutrients": ["健康脂肪", "维生素E"],
-    "recommendation_zh": "碾碎成酱/粉后引入，不要给整颗坚果"
+    "includes": ["花生酱", "杏仁酱", "核桃粉", "芝麻酱", "核桃", "芝麻粉"],
+    "key_nutrients": ["健康脂肪", "维生素E", "钙"],
+    "recommendation_zh": "碾碎成酱/粉后引入，不要给整颗坚果。注意窒息风险。"
+  },
+  "seafood": {
+    "label": "海鲜（甲壳类）",
+    "includes": ["虾仁", "蟹肉"],
+    "key_nutrients": ["蛋白质", "锌", "钙"],
+    "recommendation_zh": "甲壳类是高致敏食物，建议8月龄后谨慎引入。"
   }
 }

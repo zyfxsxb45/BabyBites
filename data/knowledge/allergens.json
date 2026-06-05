@@ -66,10 +66,20 @@
   "坚果": {
     "id": "allergen_007",
     "category": "八大过敏原",
-    "aliases": ["坚果", "杏仁", "核桃", "腰果", "榛子", "山核桃", "tree nut", "almond", "walnut", "cashew"],
+    "aliases": ["坚果", "杏仁", "核桃", "腰果", "榛子", "山核桃", "tree nut", "almond", "walnut", "cashew", "nut"],
     "cross_reactive": [],
     "hidden_sources": ["坚果酱", "坚果奶", "某些糕点点缀"],
     "notes_zh": "树坚果(一类)≠花生(豆科)，需分别标注。6月龄后可尝试碾碎坚果酱。",
+    "severity": "high"
+  },
+
+  "虾": {
+    "id": "allergen_009",
+    "category": "八大过敏原",
+    "aliases": ["虾", "虾仁", "对虾", "基围虾", "shrimp", "prawn", "crustacean", "甲壳类", "蟹", "龙虾"],
+    "cross_reactive": ["蟹", "龙虾"],
+    "hidden_sources": ["海鲜酱", "虾味调味料", "部分鱼丸"],
+    "notes_zh": "甲壳类过敏原，与鱼类过敏原不同。虾蟹之间有交叉过敏。",
     "severity": "high"
   },
 
