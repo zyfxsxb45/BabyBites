@@ -15,6 +15,7 @@ def check_known_allergy(
     food: dict,
     baby_allergies: list[str],
     kb=None,
+    llm=None,
 ) -> RuleResult:
     """
     检查食材是否含有宝宝已知过敏原。支持语义匹配：
@@ -32,7 +33,7 @@ def check_known_allergy(
     resolved_allergy_ids = set()
     if kb and hasattr(kb, "resolve_allergen_query"):
         for term in baby_allergies:
-            ids = kb.resolve_allergen_query(term)
+            ids = kb.resolve_allergen_query(term, llm=llm)
             resolved_allergy_ids.update(ids)
 
     if not food_allergen:
@@ -50,7 +51,7 @@ def check_known_allergy(
     # 解析食材的过敏原字段：可能是 umbrella term（如"海鲜"）
     food_allergen_ids = set()
     if kb and hasattr(kb, "resolve_allergen_query"):
-        food_allergen_ids = set(kb.resolve_allergen_query(food_allergen))
+        food_allergen_ids = set(kb.resolve_allergen_query(food_allergen, llm=llm))
     if not food_allergen_ids and kb:
         # fallback: 直接查找过敏原条目
         for aid_key, a in kb._allergens.items():

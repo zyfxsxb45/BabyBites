@@ -34,6 +34,7 @@ class RuleEngine:
         food: dict,
         baby_profile: dict,
         plan_date: Optional["date"] = None,
+        llm=None,
     ) -> RuleOutput:
         """
         对单个食材执行全部单食材规则。
@@ -56,7 +57,7 @@ class RuleEngine:
         # 1. 已知过敏原 —— 最高优先级
         results.append(
             check_known_allergy(
-                food, baby_profile.get("allergies", []), kb=self.kb,
+                food, baby_profile.get("allergies", []), kb=self.kb, llm=llm,
             )
         )
 

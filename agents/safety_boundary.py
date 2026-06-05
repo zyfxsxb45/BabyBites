@@ -25,10 +25,11 @@ class SafetyBoundaryAgent(RuleAgent):
         "doubled_birth_weight": ["体重翻倍", "体重是出生", "长得快"],
     }
 
-    def __init__(self, kb=None, rule_engine=None):
+    def __init__(self, kb=None, rule_engine=None, llm=None):
         if rule_engine is None and kb is not None:
             rule_engine = RuleEngine(kb)
         super().__init__(kb=kb, rule_engine=rule_engine)
+        self._llm = llm
 
     def process(self, input_data: dict, **kwargs) -> dict:
         profile = input_data.get("profile", {})
@@ -53,7 +54,7 @@ class SafetyBoundaryAgent(RuleAgent):
             food_data = food.get("food_data", food)
             if not food_data:
                 continue
-            result = self.rule_engine.evaluate_food(food_data, profile)
+            result = self.rule_engine.evaluate_food(food_data, profile, llm=self._llm)
             food_id = food_data.get("id", food_data.get("name_zh", ""))
             food_results[food_id] = {
                 "tag": result.overall_tag,

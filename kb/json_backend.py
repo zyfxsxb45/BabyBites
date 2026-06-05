@@ -150,42 +150,95 @@ class JSONKnowledgeBase:
                 return aid
         return None
 
-    def resolve_allergen_query(self, text: str) -> list[str]:
+    def resolve_allergen_query(self, text: str, llm=None) -> list[str]:
         """
-        将用户输入的日常用语解析为过敏原 ID 列表。
-        支持：
-          - 精确过敏原名（鱼类 → allergen_004）
-          - 别名匹配    （蛋 → allergen_001）
-          - umbrella term 展开（海鲜 → [鱼类, 虾]；面食 → [小麦]）
+        将用户输入的日常用语解析为过敏原 ID 列表（三级 fallback）。
+          1. umbrella_terms 精确匹配
+          2. 过敏原名/别名匹配
+          3. LLM 语义解析（需传入 llm 实例）
 
         Returns:
-            匹配到的过敏原 ID 列表，无匹配返回空列表
+            匹配到的过敏原 ID 列表
         """
         if not text:
             return []
 
-        # 1. 检查 umbrella_terms（最高优先级）
+        # Level 1: umbrella_terms
         umbrella = self._allergens.get("umbrella_terms", {})
         for term, targets in umbrella.items():
             if not term.startswith("_") and text == term:
                 resolved = []
                 for target_name in targets:
-                    # target_name 可能是过敏原名（如"鱼类"→allergen_004）也可能是需要二次查找的简称（如"虾"）
                     aid = self._find_allergen_id_by_name(target_name)
                     if aid:
                         resolved.append(aid)
                 if resolved:
                     return resolved
 
-        # 2. 精确过敏原名匹配（text = "鱼类"）
+        # Level 2: exact name / alias
         aid = self._find_allergen_id_by_name(text)
         if aid:
             return [aid]
-
-        # 3. 别名匹配
         aid = self.match_allergen_by_alias(text)
         if aid:
             return [aid]
+
+        # Level 3: LLM NLU
+        if llm:
+            return self._resolve_allergen_by_llm(text, llm)
+
+        return []
+
+    def _resolve_allergen_by_llm(self, text: str, llm) -> list[str]:
+        """
+        用 LLM 将日常口语翻译为过敏原 ID 候选集。
+        严格约束：只返回 KB 中存在的过敏原 ID，不编造。
+        """
+        import json as _json
+        valid = [
+            (a["id"], k, a.get("aliases", []))
+            for k, a in self._allergens.items()
+            if not k.startswith("_") and k != "umbrella_terms" and "aliases" in a
+        ]
+        allergen_list = "\n".join(
+            f"- {aid} | {name} | 别名：{', '.join(aliases[:6])}"
+            for aid, name, aliases in valid
+        )
+
+        prompt = f"""你是婴儿辅食过敏原识别助手。
+
+已知过敏原列表（只能从下面选，不能编造）：
+{allergen_list}
+
+家长说宝宝「{text}」。请判断这可能对应哪些已知过敏原。
+
+规则：
+1. 只返回 JSON 数组，包含匹配到的过敏原 ID，如 ["allergen_004", "allergen_009"]
+2. 如果家长说法模糊（如"发物"），返回所有可能相关的
+3. 如果完全无法对应，返回 []
+4. 只返回 JSON，不要解释"""
+
+        try:
+            result = llm.chat_structured(
+                system_prompt="你是过敏原映射助手。只返回JSON数组。",
+                user_message=prompt,
+                schema={"type": "array", "items": {"type": "string"}},
+                max_tokens=200,
+            )
+            if isinstance(result, list):
+                valid_ids = {aid for aid, _, _ in valid}
+                return [r for r in result if isinstance(r, str) and r in valid_ids]
+            if isinstance(result, dict):
+                raw = result.get("raw", "")
+                try:
+                    parsed = _json.loads(raw) if isinstance(raw, str) else raw
+                    if isinstance(parsed, list):
+                        valid_ids = {aid for aid, _, _ in valid}
+                        return [r for r in parsed if isinstance(r, str) and r in valid_ids]
+                except (_json.JSONDecodeError, TypeError):
+                    pass
+        except Exception:
+            pass
 
         return []
 

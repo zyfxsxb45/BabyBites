@@ -38,7 +38,7 @@ if "safety_agent" not in st.session_state:
     from agents.safety_boundary import SafetyBoundaryAgent
     from rules.engine import RuleEngine
     engine = RuleEngine(st.session_state.kb)
-    st.session_state.safety_agent = SafetyBoundaryAgent(kb=st.session_state.kb, rule_engine=engine)
+    st.session_state.safety_agent = SafetyBoundaryAgent(kb=st.session_state.kb, rule_engine=engine, llm=st.session_state.llm)
 
 if "plan_agent" not in st.session_state:
     from agents.plan_generation import PlanGenerationAgent
@@ -89,6 +89,29 @@ with st.sidebar:
         "已知过敏原",
         ["鸡蛋", "牛奶", "花生", "鱼类", "虾", "大豆", "小麦", "坚果", "芝麻"],
     )
+    # 自定义过敏原输入（支持日常口语，LLM自动解析）
+    custom_allergen = st.text_input(
+        "➕ 其他过敏/忌口（如：海鲜、面食、发物…）",
+        placeholder="输入后回车 → LLM自动匹配",
+        key="custom_allergen_input",
+    )
+    if custom_allergen:
+        resolved = st.session_state.kb.resolve_allergen_query(
+            custom_allergen, llm=st.session_state.llm
+        )
+        if resolved:
+            names = []
+            for aid in resolved:
+                for aname, a in st.session_state.kb._allergens.items():
+                    if not aname.startswith("_") and a.get("id") == aid:
+                        names.append(aname)
+                        break
+            if names:
+                st.caption(f"💡 「{custom_allergen}」已匹配：{'、'.join(names)}")
+                # 自动合并到 allergies_raw
+                allergies_raw = list(set(allergies_raw + names))
+        else:
+            st.caption(f"❓ 「{custom_allergen}」未能匹配到已知过敏原，已忽略")
     tried_foods_raw = st.multiselect(
         "已尝试食材",
         ["大米粉", "小米", "燕麦", "玉米",
