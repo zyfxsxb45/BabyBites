@@ -96,7 +96,8 @@ function Assessment({ data }) {
   const foods = data.food_tags || {};
   const avoidList = Object.entries(foods).filter(([, v]) => v.tag === "avoid");
   const cautionList = Object.entries(foods).filter(([, v]) => v.tag === "caution");
-  const suitableList = Object.entries(foods).filter(([, v]) => v.tag === "suitable");
+  const recommended = Object.entries(foods).filter(([, v]) => v.tag !== "avoid" && v.tag !== "caution" && v.iron_rich);
+  const laterList = Object.entries(foods).filter(([, v]) => v.tag !== "avoid" && v.tag !== "caution" && !v.iron_rich);
   const stage = data.stage || {};
 
   return (
@@ -154,17 +155,35 @@ function Assessment({ data }) {
           )}
           {cautionList.length > 0 && (
             <div className="card" style={{ background: "#fff8e1" }}>
-              <b>⚠️ 需要注意 ({cautionList.length}种)：</b>
+              <b>⚠️ 需谨慎引入 ({cautionList.length}种)：</b>
               {cautionList.slice(0, 5).map(([name, f]) => (
                 <p key={name}>· <b>{name}</b>：{(f.reasons || []).join("；")}</p>
               ))}
+              {cautionList.length > 5 && <p style={{ color: "#999" }}>…还有 {cautionList.length - 5} 种</p>}
             </div>
           )}
-          <div className="food-grid">
-            {suitableList.map(([name]) => (
-              <div key={name} className="food-card">✅ {name}</div>
-            ))}
-          </div>
+          {recommended.length > 0 && (
+            <div className="card" style={{ background: "#e8f5e9" }}>
+              <b>⭐ 优先推荐 ({recommended.length}种) — 高铁、高营养、适合首尝</b>
+              <div className="food-grid" style={{ marginTop: 8 }}>
+                {recommended.map(([name]) => (
+                  <div key={name} className="food-card">⭐ {name}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {laterList.length > 0 && (
+            <details style={{ marginTop: 12 }}>
+              <summary style={{ cursor: "pointer", color: "#8d6e63", fontSize: 14, fontWeight: 600 }}>
+                🔜 可后续添加 ({laterList.length}种) — 首轮辅食之后逐步引入
+              </summary>
+              <div className="food-grid" style={{ marginTop: 8 }}>
+                {laterList.map(([name]) => (
+                  <div key={name} className="food-card">{name}</div>
+                ))}
+              </div>
+            </details>
+          )}
         </>
       )}
     </div>

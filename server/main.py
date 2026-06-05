@@ -122,7 +122,14 @@ def assess(req: AssessRequest):
     # 整理返回
     food_tags = {}
     for fid, fr in result.get("food_safety_results", {}).items():
-        food_tags[fid] = {"tag": fr["tag"], "reasons": fr["reasons"]}
+        food = kb.get_food(fid) or kb.get_food_by_name(fid)
+        name = food.get("name_zh", fid) if food else fid
+        food_tags[name] = {
+            "tag": fr["tag"],
+            "reasons": fr["reasons"],
+            "iron_rich": bool(food.get("iron_rich")) if food else False,
+            "potential_allergen": bool(food.get("potential_allergen")) if food else False,
+        }
 
     return {
         "can_start": result["can_start"],
