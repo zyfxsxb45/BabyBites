@@ -92,6 +92,12 @@ class FeedbackRequest(BaseModel):
 # API 路由
 # ================================================================
 
+@app.get("/")
+def root():
+    """根路由重定向到 API 文档"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "kb_stats": kb.get_stats()}
