@@ -18,6 +18,10 @@ openai>=1.0
 neo4j>=5.0
 py2neo>=2021.2
 
+# ===== 后端 API =====
+fastapi>=0.100
+uvicorn>=0.22
+
 # ===== 开发与测试 =====
 pytest>=7.0
 pytest-cov
