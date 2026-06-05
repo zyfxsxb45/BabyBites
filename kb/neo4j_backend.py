@@ -103,6 +103,10 @@ class Neo4jKnowledgeBase:
         )
         return [r["f"] for r in results]
 
+    def list_all_foods(self) -> list[dict]:
+        results = self._run("MATCH (f:Food) RETURN f")
+        return [r["f"] for r in results]
+
     def find_substitutes(self, food_name: str) -> list[dict]:
         results = self._run("""
             MATCH (f:Food {name_zh: $name})-[:SUBSTITUTE]->(alt:Food)

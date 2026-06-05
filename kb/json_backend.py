@@ -114,6 +114,9 @@ class JSONKnowledgeBase:
             if tag in (f.get("tags") or [])
         ]
 
+    def list_all_foods(self) -> list[dict]:
+        return list(self._foods.values())
+
     def find_substitutes(self, food_name: str) -> list[dict]:
         sub = self._substitutes.get(food_name)
         if not sub:

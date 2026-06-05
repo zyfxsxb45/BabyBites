@@ -197,7 +197,7 @@ def list_foods(age: Optional[int] = None, category: Optional[str] = None):
     elif category:
         foods = kb.list_foods_by_category(category)
     else:
-        foods = list(kb._foods.values())
+        foods = kb.list_all_foods()
     return {"foods": foods, "count": len(foods)}
 
 
