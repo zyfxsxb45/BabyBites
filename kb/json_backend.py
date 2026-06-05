@@ -133,10 +133,14 @@ class JSONKnowledgeBase:
     # ===== 过敏原查询 =====
 
     def get_allergen(self, allergen_id: str) -> Optional[dict]:
-        return self._allergens.get(allergen_id)
+        a = self._allergens.get(allergen_id)
+        return a if a and "aliases" in a else None
 
     def list_allergens(self) -> list[dict]:
-        return list(self._allergens.values())
+        return [
+            v for k, v in self._allergens.items()
+            if not k.startswith("_") and k != "umbrella_terms"
+        ]
 
     def match_allergen_by_alias(self, text: str) -> Optional[str]:
         text_lower = text.lower()
@@ -144,6 +148,62 @@ class JSONKnowledgeBase:
             aliases = [al.lower() for al in a.get("aliases", [])]
             if text_lower in aliases:
                 return aid
+        return None
+
+    def resolve_allergen_query(self, text: str) -> list[str]:
+        """
+        将用户输入的日常用语解析为过敏原 ID 列表。
+        支持：
+          - 精确过敏原名（鱼类 → allergen_004）
+          - 别名匹配    （蛋 → allergen_001）
+          - umbrella term 展开（海鲜 → [鱼类, 虾]；面食 → [小麦]）
+
+        Returns:
+            匹配到的过敏原 ID 列表，无匹配返回空列表
+        """
+        if not text:
+            return []
+
+        # 1. 检查 umbrella_terms（最高优先级）
+        umbrella = self._allergens.get("umbrella_terms", {})
+        for term, targets in umbrella.items():
+            if not term.startswith("_") and text == term:
+                resolved = []
+                for target_name in targets:
+                    # target_name 可能是过敏原名（如"鱼类"→allergen_004）也可能是需要二次查找的简称（如"虾"）
+                    aid = self._find_allergen_id_by_name(target_name)
+                    if aid:
+                        resolved.append(aid)
+                if resolved:
+                    return resolved
+
+        # 2. 精确过敏原名匹配（text = "鱼类"）
+        aid = self._find_allergen_id_by_name(text)
+        if aid:
+            return [aid]
+
+        # 3. 别名匹配
+        aid = self.match_allergen_by_alias(text)
+        if aid:
+            return [aid]
+
+        return []
+
+    def _find_allergen_id_by_name(self, name: str) -> Optional[str]:
+        """按过敏原中文名查找 ID"""
+        for aid, a in self._allergens.items():
+            if aid.startswith("_"):
+                continue
+            # 键名匹配（如 allergens["鱼类"] → allergen_004）
+            if aid == name:
+                return a.get("id")
+            # name_zh/id 字段匹配
+            if a.get("name_zh") == name or a.get("id") == name:
+                return a.get("id")
+            # 别名匹配
+            aliases = [al.lower() for al in a.get("aliases", [])]
+            if name.lower() in aliases:
+                return a.get("id")
         return None
 
     # ===== 月龄阶段 =====
@@ -275,7 +335,7 @@ class JSONKnowledgeBase:
         db = self._get_db()
         return {
             "foods_count": len(self._foods),
-            "allergens_count": len(self._allergens),
+            "allergens_count": len([k for k in self._allergens if not k.startswith("_") and k != "umbrella_terms"]),
             "nutrients_count": len(self._nutrients),
             "age_stages_count": len(self._age_stages),
             "products_count": db.execute("SELECT COUNT(*) FROM products").fetchone()[0],

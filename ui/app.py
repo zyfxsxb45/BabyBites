@@ -87,7 +87,7 @@ with st.sidebar:
     feeding_method_raw = st.selectbox("喂养方式", ["纯母乳", "配方奶", "混合喂养"])
     allergies_raw = st.multiselect(
         "已知过敏原",
-        ["鸡蛋", "牛奶", "花生", "鱼类", "大豆", "小麦", "坚果", "芝麻"],
+        ["鸡蛋", "牛奶", "花生", "鱼类", "虾", "大豆", "小麦", "坚果", "芝麻"],
     )
     tried_foods_raw = st.multiselect(
         "已尝试食材",

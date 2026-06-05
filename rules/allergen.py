@@ -17,47 +17,66 @@ def check_known_allergy(
     kb=None,
 ) -> RuleResult:
     """
-    检查食材是否含有宝宝已知过敏原。
-
-    Args:
-        food: 食材数据（来自 foods.json 或 kb.get_food()）
-        baby_allergies: 宝宝的过敏原 ID 列表，如 ['allergen_001', 'allergen_002']
-        kb: 知识库实例（用于查询过敏原别名，可选但不需——此规则不依赖 KB）
-
-    Returns:
-        RuleResult: tag='avoid' 如果食材本身就是已知过敏原
-                    tag='suitable' 如果无冲突
+    检查食材是否含有宝宝已知过敏原。支持语义匹配：
+      - 日常用语展开："海鲜" → ["鱼类", "虾"]
+      - 别名匹配："蛋" → 鸡蛋
+      - umbrella term 双向解析
     """
     if not baby_allergies:
         return make_suitable("过敏原检查", "宝宝无已知过敏原")
 
-    food_allergen = food.get("allergen")
     food_name = food.get("name_zh", food.get("id", "未知食材"))
+    food_allergen = food.get("allergen")
 
-    # 食材本身是过敏原（如"鸡蛋"→鸡蛋过敏）
-    if food_allergen:
-        # food.allergen 存的是过敏原名称，需匹配
-        for allergy_id in baby_allergies:
-            # 简单名称匹配（可直接扩展为查 allergens.json 的 aliases）
-            if kb:
-                allergen = kb.get_allergen(allergy_id)
-                if allergen and food_allergen in allergen.get("aliases", []):
-                    return RuleResult(
-                        tag="avoid",
-                        reason=f"{food_name}含有已知过敏原「{food_allergen}」，"
-                               f"请避免使用。建议用其他同类食材替代。",
-                        rule_name="已知过敏原拦截",
-                        source="CDC指南 / WHO喂养原则",
-                        severity="error",
-                    )
+    # 解析宝宝的过敏原：用户输入的日常用语 → 标准过敏原 ID 列表
+    resolved_allergy_ids = set()
+    if kb and hasattr(kb, "resolve_allergen_query"):
+        for term in baby_allergies:
+            ids = kb.resolve_allergen_query(term)
+            resolved_allergy_ids.update(ids)
 
-    # 如果食物不是过敏原
+    if not food_allergen:
+        if food.get("potential_allergen", False):
+            return RuleResult(
+                tag="caution",
+                reason=f"{food_name}是潜在致敏食材（过敏原类别：{food_allergen or '未指定'}），"
+                       f"首日试行本可先给极少份量，观察宝宝反应",
+                rule_name="潜在过敏原提示",
+                source="CDC指南",
+                severity="warning",
+            )
+        return make_suitable("过敏原检查", f"{food_name}不含已知过敏原")
+
+    # 解析食材的过敏原字段：可能是 umbrella term（如"海鲜"）
+    food_allergen_ids = set()
+    if kb and hasattr(kb, "resolve_allergen_query"):
+        food_allergen_ids = set(kb.resolve_allergen_query(food_allergen))
+    if not food_allergen_ids and kb:
+        # fallback: 直接查找过敏原条目
+        for aid_key, a in kb._allergens.items():
+            if aid_key.startswith("_"):
+                continue
+            if aid_key == food_allergen or a.get("name_zh") == food_allergen:
+                food_allergen_ids.add(a.get("id"))
+                break
+
+    # 匹配：宝宝的过敏原 ∩ 食材的过敏原
+    if food_allergen_ids & resolved_allergy_ids:
+        return RuleResult(
+            tag="avoid",
+            reason=f"{food_name}含有已知过敏原「{food_allergen}」，"
+                   f"请避免使用。建议用其他同类食材替代。",
+            rule_name="已知过敏原拦截",
+            source="CDC指南 / WHO喂养原则",
+            severity="error",
+        )
+
+    # 食材是潜在致敏物、有可能触发未确认的交叉过敏
     if food.get("potential_allergen", False):
-        # 食物属于可能致敏的类别，但不在宝宝已知过敏列表中
         return RuleResult(
             tag="caution",
-            reason=f"{food_name}是潜在致敏食材（过敏原类别：{food_allergen or '未指定'}），"
-                   f"首日试行本可先给极少份量，观察宝宝反应",
+            reason=f"{food_name}是潜在致敏食材（过敏原类别：{food_allergen}），"
+                   f"首日试吃可先给极少份量，观察宝宝反应",
             rule_name="潜在过敏原提示",
             source="CDC指南",
             severity="warning",
