@@ -27,10 +27,17 @@ def check_known_allergy(
                      False 时，保持现有行为（所有潜在过敏原都标 caution）。
     """
     if not baby_allergies:
-        return make_suitable("过敏原检查", "宝宝无已知过敏原")
+        baby_allergies = []  # 确保不为 None
 
     food_name = food.get("name_zh", food.get("id", "未知食材"))
     food_allergen = food.get("allergen")
+
+    # 解析宝宝的过敏原：用户输入的日常用语 → 标准过敏原 ID 列表（必须先做）
+    resolved_allergy_ids = set()
+    if kb and hasattr(kb, "resolve_allergen_query"):
+        for term in baby_allergies:
+            ids = kb.resolve_allergen_query(term, llm=llm)
+            resolved_allergy_ids.update(ids)
 
     # 外部食材：检查 _allergen_flags
     if food.get("_external"):
@@ -43,22 +50,19 @@ def check_known_allergy(
         ]:
             if ext_flags.get(ext_key):
                 # 检查宝宝是否对该过敏原有已知过敏
-                for allergy_term in baby_allergies:
-                    if kb and hasattr(kb, "_find_allergen_id_by_name"):
-                        aid = kb._find_allergen_id_by_name(internal_name)
-                        if aid and aid in resolved_allergy_ids:
-                            return RuleResult(
-                                tag="avoid",
-                                reason=f"{food_name}{'含' if food_allergen else '可能含'}{internal_name}，"
-                                       f"与宝宝已知过敏原冲突",
-                                rule_name="已知过敏原拦截（外部食材）",
-                                source="外部数据 / CDC指南",
-                                severity="error",
-                            )
+                if kb and hasattr(kb, "_find_allergen_id_by_name"):
+                    aid = kb._find_allergen_id_by_name(internal_name)
+                    if aid and aid in resolved_allergy_ids:
+                        return RuleResult(
+                            tag="avoid",
+                            reason=f"{food_name}{'含' if food_allergen else '可能含'}{internal_name}，"
+                                   f"与宝宝已知过敏原冲突",
+                            rule_name="已知过敏原拦截（外部食材）",
+                            source="外部数据 / CDC指南",
+                            severity="error",
+                        )
                 # 食材含该过敏原但宝宝没被标记，标记为潜在过敏
                 food_allergen = food_allergen or internal_name
-
-    # 解析宝宝的过敏原：用户输入的日常用语 → 标准过敏原 ID 列表
     resolved_allergy_ids = set()
     if kb and hasattr(kb, "resolve_allergen_query"):
         for term in baby_allergies:
