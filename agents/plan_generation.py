@@ -39,29 +39,34 @@ class PlanGenerationAgent(LLMAgent):
 
     def process(self, input_data: dict, **kwargs) -> dict:
         """
-        生成周度计划。
+        生成周度计划或候选评估。
 
         Args:
             input_data: {
                 profile: {age_months, allergies, tried_foods, ...},
                 safe_foods: [{food_data, tag}, ...],
                 stage: {...},
+                mode: "recommend" | "evaluate"  (default: recommend)
             }
+
+            recommend 模式: 从 safe_foods 中生成7天周计划
+            evaluate 模式:  对 safe_foods 做逐项评估，返回带标签的候选列表
         """
         profile = input_data.get("profile", {})
         safe_foods = input_data.get("safe_foods", [])
         stage = input_data.get("stage", {})
+        mode = input_data.get("mode", "recommend")
 
         if not safe_foods:
             return {"plan": [], "new_foods_this_week": [], "error": "无可用的安全食材"}
 
-        # 1. 约束排序
+        # evaluate 模式：只做逐项评估，不生成计划
+        if mode == "evaluate":
+            return self._evaluate_candidates(safe_foods, profile, stage)
+
+        # recommend 模式：生成周计划
         ranked = self._constraint_rank(safe_foods, profile)
-
-        # 2. 选新食材
         new_foods = self._select_new_foods(ranked, profile)
-
-        # 3. 生成周计划
         plan = self._generate_weekly_plan(ranked, new_foods, profile, stage)
 
         return {
@@ -70,6 +75,29 @@ class PlanGenerationAgent(LLMAgent):
             "stage_label": stage.get("label", ""),
             "nutrition_notes": self._get_nutrition_notes(plan),
             "total_foods_available": len(safe_foods),
+        }
+
+    def _evaluate_candidates(self, foods: list, profile: dict, stage: dict) -> dict:
+        """evaluate 模式：逐候选返回评估结果"""
+        ranked = self._constraint_rank(foods, profile)
+        items = []
+        for f in ranked:
+            fd = f.get("food_data", f)
+            items.append({
+                "food_name": fd.get("name_zh", ""),
+                "food_name_en": fd.get("name_en", ""),
+                "food_id": fd.get("id", ""),
+                "score": f.get("_score", 0),
+                "category": fd.get("category", ""),
+                "iron_rich": fd.get("iron_rich", False),
+                "min_age": fd.get("min_age_months"),
+                "external": fd.get("_external", False),
+            })
+        return {
+            "mode": "evaluate",
+            "items": items,
+            "total": len(items),
+            "stage_label": stage.get("label", ""),
         }
 
     # ===== 约束排序 =====

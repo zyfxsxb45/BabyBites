@@ -43,16 +43,156 @@ class ChatAgent(LLMAgent):
 
     def __init__(self, kb=None, llm=None, rag=None):
         super().__init__(kb=kb, llm=llm)
-        self.rag = rag  # RAGRetriever 实例（可选）
+        self.rag = rag
 
-        # 可被 LLM "调用"的工具
-        self._tools = {
-            "查食材": lambda name: self.kb.get_food_by_name(name) if self.kb else None,
-            "查营养素": lambda name: self._find_nutrient(name),
-            "查过敏原": lambda name: self._find_allergen(name),
-            "查适龄食材": lambda age: self.kb.list_foods_by_age(age) if self.kb else [],
-            "查食材类别": lambda cat: self.kb.list_foods_by_category(cat) if self.kb else [],
+        # 工具定义：名称 → (关键词列表, 处理函数)
+        self._tools: dict[str, tuple[list[str], callable]] = {
+            "查食材": (
+                ["是什么", "能吃", "可以吃", "能不能", "营养", "含", "食材", "食物", "介绍"],
+                lambda name: self._tool_lookup_food(name),
+            ),
+            "查过敏原": (
+                ["过敏", "致敏", "过敏原"],
+                lambda name: self._tool_lookup_allergen(name),
+            ),
+            "查适龄食材": (
+                ["适龄", "可以吃哪些", "推荐", "适合", "月龄"],
+                lambda age: self._tool_list_by_age(age),
+            ),
+            "评估食材": (
+                ["能不能吃", "可以吃吗", "安全吗", "能不能喂"],
+                lambda name, profile=None: self._tool_evaluate_food(name, profile),
+            ),
         }
+
+    def _dispatch_tools(self, message: str, profile: dict = None) -> str:
+        """
+        根据消息内容自动调用合适的工具，返回工具执行结果文本。
+        匹配策略：同时命中工具名关键词 + 消息包含食材/过敏原名 → 才触发。
+        """
+        tool_results = []
+
+        # 提取消息中可能的实体名
+        food_names = self._extract_food_names(message)
+        allergen_names = self._extract_allergen_names(message)
+        age_match = self._extract_age(message)
+
+        for tool_name, (keywords, handler) in self._tools.items():
+            if not any(kw in message for kw in keywords):
+                continue
+
+            if tool_name in ("查食材", "评估食材"):
+                for name in food_names[:3]:  # 最多查3个
+                    try:
+                        result = handler(name) if tool_name == "查食材" else handler(name, profile)
+                        if result:
+                            tool_results.append(f"[{tool_name}] {name}:\n{result}")
+                    except Exception:
+                        pass
+
+            elif tool_name == "查过敏原":
+                for name in allergen_names[:2]:
+                    try:
+                        result = handler(name)
+                        if result:
+                            tool_results.append(f"[{tool_name}] {name}:\n{result}")
+                    except Exception:
+                        pass
+
+            elif tool_name == "查适龄食材" and age_match:
+                try:
+                    result = handler(age_match)
+                    if result:
+                        tool_results.append(f"[{tool_name}] {age_match}月龄:\n{result}")
+                except Exception:
+                    pass
+
+        return "\n\n".join(tool_results) if tool_results else ""
+
+    def _extract_food_names(self, text: str) -> list[str]:
+        """从消息中提取食材名"""
+        if not self.kb:
+            return []
+        found = []
+        for food in self.kb.list_all_foods():
+            name = food.get("name_zh", "")
+            if name and name in text:
+                found.append(name)
+        return found
+
+    def _extract_allergen_names(self, text: str) -> list[str]:
+        """从消息中提取过敏原名"""
+        if not self.kb:
+            return []
+        found = []
+        for a in self.kb.list_allergens():
+            for alias in a.get("aliases", [])[:3]:
+                if alias and alias in text:
+                    found.append(alias)
+                    break
+        return list(set(found))
+
+    def _extract_age(self, text: str) -> int | None:
+        """从消息中提取月龄"""
+        import re
+        m = re.search(r'(\d+)\s*个?\s*月', text)
+        if m:
+            return int(m.group(1))
+        m = re.search(r'(\d+)\s*岁', text)
+        if m:
+            return int(m.group(1)) * 12
+        return None
+
+    def _tool_lookup_food(self, name: str) -> str:
+        food = self.kb.get_food_by_name(name)
+        if not food:
+            return "未收录该食材"
+        parts = [
+            f"{food.get('name_zh', '')}（{food.get('category', '')}）",
+            f"适合月龄: {food.get('min_age_months', '?')}月起",
+            f"铁含量: {'高铁' if food.get('iron_rich') else '普通'}",
+        ]
+        nutrients = food.get("nutrients", {})
+        if nutrients:
+            parts.append("营养成分: " + ", ".join(
+                f"{k}{v.get('value', '')}{v.get('unit', '')}"
+                for k, v in list(nutrients.items())[:3]
+            ))
+        if food.get("notes_zh"):
+            parts.append(f"注意事项: {food['notes_zh']}")
+        return "\n".join(parts)
+
+    def _tool_lookup_allergen(self, name: str) -> str:
+        aid = self.kb.match_allergen_by_alias(name)
+        if not aid:
+            return "未收录该过敏原"
+        a = self.kb.get_allergen(aid)
+        if not a:
+            return "未收录"
+        parts = [
+            f"{name}: {a.get('severity', '')}风险",
+            f"常见来源: {', '.join(a.get('hidden_sources', []))}"
+        ]
+        if a.get("cross_reactive"):
+            parts.append(f"交叉过敏: {', '.join(a['cross_reactive'])}")
+        return "\n".join(parts)
+
+    def _tool_list_by_age(self, age: int) -> str:
+        foods = self.kb.list_foods_by_age(age)
+        if not foods:
+            return "无适龄食材"
+        return f"共 {len(foods)} 种适龄食材: " + "、".join(
+            f.get("name_zh", "") for f in foods[:10]
+        ) + ("..." if len(foods) > 10 else "")
+
+    def _tool_evaluate_food(self, name: str, profile: dict = None) -> str:
+        from rules.engine import RuleEngine
+        engine = RuleEngine(self.kb)
+        food = self.kb.get_food_by_name(name)
+        if not food:
+            return f"未收录「{name}」"
+        result = engine.evaluate_food(food, profile or {})
+        return f"判定: {result.overall_tag} | {'; '.join(result.reasons[:3])}"
 
     def extract_profile_insights(self, message: str, current_profile: dict = None) -> dict:
         """
@@ -111,6 +251,11 @@ class ChatAgent(LLMAgent):
 
         # 1. 检索知识库
         context, sources = self._retrieve_knowledge(message)
+
+        # 1.5. 工具调度：检测用户意图，自动调用工作流
+        tool_context = self._dispatch_tools(message, input_data.get("current_profile"))
+        if tool_context:
+            context = (context or "") + "\n\n[工具查询结果]\n" + tool_context
 
         # 2. RAG 检索标准/指南原文
         rag_context = ""
