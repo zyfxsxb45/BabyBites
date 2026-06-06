@@ -28,14 +28,26 @@ body {
 .sidebar textarea { resize: vertical; min-height: 60px; }
 .sidebar .age-row { display: flex; gap: 10px; }
 .sidebar .age-row .field { flex: 1; }
-.chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ===== Chip 组（可滚动 + 自定义滚动条）===== */
+.chip-group {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  max-height: 140px; overflow-y: auto;
+  padding-right: 4px;
+}
+.chip-group::-webkit-scrollbar { width: 5px; }
+.chip-group::-webkit-scrollbar-track { background: transparent; border-radius: 10px; }
+.chip-group::-webkit-scrollbar-thumb { background: #e8d5c8; border-radius: 10px; }
+.chip-group::-webkit-scrollbar-thumb:hover { background: #d4b8a8; }
 .chip {
-  padding: 5px 12px; border-radius: 20px; font-size: 13px;
+  padding: 6px 14px; border-radius: 8px; font-size: 13px;
   cursor: pointer; border: 1.5px solid #e8d5c8; background: #fff;
   transition: all .2s; user-select: none; display: inline-flex; align-items: center; gap: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.chip:hover { border-color: var(--orange); }
-.chip.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+.chip:hover { border-color: var(--orange); box-shadow: 0 2px 8px rgba(255,152,0,.15); transform: translateY(-1px); }
+.chip.active { background: var(--orange); color: #fff; border-color: var(--orange); box-shadow: 0 2px 8px rgba(255,152,0,.3); }
+
 .btn-primary {
   background: linear-gradient(135deg, #ff9800, #f57c00);
   color: #fff; border: none; border-radius: 12px; padding: 12px;
@@ -47,6 +59,48 @@ body {
 .main-content { padding: 28px 32px; max-width: 960px; }
 .section-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+
+/* ===== Tab 导航栏 ===== */
+.tab-bar {
+  position: relative; display: flex;
+  background: #fff; border-radius: 14px;
+  box-shadow: var(--shadow); margin-bottom: 20px;
+  overflow: hidden;
+}
+.tab-btn {
+  flex: 1; padding: 14px 8px; border: none;
+  background: transparent; font-size: 14px; font-weight: 600;
+  color: var(--text-light); cursor: pointer;
+  transition: color .25s; position: relative; z-index: 1;
+  font-family: inherit; white-space: nowrap;
+}
+.tab-btn:hover { color: #e68a00; }
+.tab-btn.active { color: #e65100; }
+.tab-indicator {
+  position: absolute; bottom: 0; left: 0; height: 3px;
+  background: linear-gradient(90deg, #ff9800, #f57c00);
+  border-radius: 3px 3px 0 0;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+
+/* ===== Tab 内容渐显动效 ===== */
+.tab-content { position: relative; }
+.fade-in { animation: fadeIn .35s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 雷达图卡片 ===== */
+.radar-card {
+  background: #fff; border-radius: var(--radius);
+  padding: 16px 12px 8px; box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.radar-title {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  margin-bottom: 4px; text-align: center;
+}
 
 /* tags */
 .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
@@ -64,13 +118,35 @@ body {
 .metric-card.r .val { color: var(--red); }
 .metric-card.o .val { color: var(--orange); }
 
-/* week */
+/* ===== 周历卡片优化 ===== */
 .week-calendar { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; }
-.day-card { background: #fff; border-radius: 12px; padding: 10px 6px; text-align: center; box-shadow: var(--shadow); min-height: 90px; }
-.day-card.new { background: linear-gradient(180deg, #fff8e1, #fff); border: 2px solid #ffcc80; }
+.day-card {
+  background: #fff; border-radius: 12px; padding: 10px 6px;
+  text-align: center; box-shadow: var(--shadow); min-height: 90px;
+  border-top: 3px solid #e8d5c8;
+  transition: transform .2s, box-shadow .2s;
+}
+.day-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.day-card.new {
+  background: linear-gradient(180deg, #fff8e1, #fff);
+  border-top: 3px solid #ff9800;
+  box-shadow: 0 2px 14px rgba(255,152,0,0.12);
+}
+.day-card.new:hover { box-shadow: 0 6px 22px rgba(255,152,0,0.2); }
 .day-card .dn { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
 .day-card .fi { background: #fef5e7; border-radius: 8px; padding: 2px 6px; font-size: 13px; margin: 2px 0; }
+.day-card .sn { font-size: 10px; color: #999; margin-top: 6px; line-height: 1.4; }
 .day-card .tag { margin-top: 2px; }
+
+/* ===== 谨慎引入可展开 ===== */
+.caution-details { margin-top: 8px; }
+.caution-details summary {
+  cursor: pointer; color: #e65100; font-size: 13px;
+  font-weight: 600; padding: 4px 0;
+  transition: color .2s;
+}
+.caution-details summary:hover { color: #bf360c; }
+.caution-details p { animation: fadeIn .25s ease; }
 
 /* food grid */
 .food-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 8px; }
@@ -159,4 +235,5 @@ body {
   .chat-overlay { width: calc(100vw - 16px); right: 8px; }
   .bb-float { bottom: 16px; right: 16px; }
   .bb-ball { width: 64px; height: 64px; }
+  .tab-btn { font-size: 12px; padding: 10px 4px; }
 }

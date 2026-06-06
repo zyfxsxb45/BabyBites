@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "./api";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer,
+} from "recharts";
 import "./App.css";
 
 /* ================================================================
@@ -9,7 +12,7 @@ function Sidebar({ profile, setProfile, onAssess }) {
   const ALLERGENS = ["鸡蛋", "牛奶", "花生", "鱼类", "虾", "大豆", "小麦", "坚果", "芝麻"];
   const FOODS = ["大米粉","小米","燕麦","玉米","猪肝","鸡肝","牛肉","猪肉(瘦)","鸡肉","鸭肉","三文鱼","鳕鱼","带鱼","虾仁","鸡蛋","豆腐","胡萝卜","南瓜","紫薯","山药","土豆","菠菜","西兰花","花椰菜","油菜","番茄","冬瓜","豌豆","苹果","香蕉","梨","牛油果","蓝莓","草莓","橙子","木瓜","酸奶","奶酪","核桃","芝麻粉"];
 
-  const toggle = (list, key, val) => {
+  const toggle = (key, val) => {
     const arr = profile[key] || [];
     const next = arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
     setProfile({ ...profile, [key]: next });
@@ -29,7 +32,7 @@ function Sidebar({ profile, setProfile, onAssess }) {
           <label>矫正月龄</label>
           <input type="number" value={profile.corrected_age_months || ""} min={0} max={36}
             placeholder="早产儿填"
-            onChange={(e) => setProfile({ ...profile, corrected_age_months: e.target.value ? Number(e.target.value) : null })} />
+            onChange={(e) => setProfile({ ...profile, corrected_age_months: e.target.value ? Number(e.target.value) : null, preterm: e.target.value ? true : profile.preterm })} />
         </div>
       </div>
 
@@ -87,22 +90,16 @@ function Tag({ type }) {
 }
 
 /* ================================================================
-   安全评估
+   Tab 1：阶段判断
    ================================================================ */
-function Assessment({ data }) {
-  if (!data) return <p style={{ color: "#999" }}>👈 请先在左侧填写宝宝信息，点击「开始评估」</p>;
+function StageAssessment({ data }) {
+  if (!data) return <p style={{ color: "#999", textAlign: "center", padding: 40 }}>👈 请先在左侧填写宝宝信息，点击「开始评估」</p>;
 
   const signals = data.readiness_signals || [];
-  const foods = data.food_tags || {};
-  const avoidList = Object.entries(foods).filter(([, v]) => v.tag === "avoid");
-  const cautionList = Object.entries(foods).filter(([, v]) => v.tag === "caution");
-  const recommended = Object.entries(foods).filter(([, v]) => v.tag !== "avoid" && v.tag !== "caution" && v.iron_rich);
-  const laterList = Object.entries(foods).filter(([, v]) => v.tag !== "avoid" && v.tag !== "caution" && !v.iron_rich);
   const stage = data.stage || {};
 
   return (
-    <div>
-      <h2 className="section-title">📊 阶段判断</h2>
+    <div className="fade-in">
       <div className="metrics-row">
         <div className={`metric-card ${data.can_start ? "g" : "r"}`}>
           <div className="val">{data.can_start ? "✅" : "🚫"}</div>
@@ -142,60 +139,134 @@ function Assessment({ data }) {
         </div>
       )}
 
-      {Object.keys(foods).length > 0 && (
-        <>
-          <h2 className="section-title">🍽️ 食材安全标签</h2>
-          {avoidList.length > 0 && (
-            <div className="card" style={{ background: "#ffebee" }}>
-              <b>🚫 必须避免 ({avoidList.length}种)：</b>
-              {avoidList.map(([name, f]) => (
-                <p key={name}>· <b>{name}</b>：{(f.reasons || []).join("；")}</p>
-              ))}
-            </div>
-          )}
-          {cautionList.length > 0 && (
-            <div className="card" style={{ background: "#fff8e1" }}>
-              <b>⚠️ 需谨慎引入 ({cautionList.length}种)：</b>
-              {cautionList.slice(0, 5).map(([name, f]) => (
-                <p key={name}>· <b>{name}</b>：{(f.reasons || []).join("；")}</p>
-              ))}
-              {cautionList.length > 5 && <p style={{ color: "#999" }}>…还有 {cautionList.length - 5} 种</p>}
-            </div>
-          )}
-          {recommended.length > 0 && (
-            <div className="card" style={{ background: "#e8f5e9" }}>
-              <b>⭐ 优先推荐 ({recommended.length}种) — 高铁、高营养、适合首尝</b>
-              <div className="food-grid" style={{ marginTop: 8 }}>
-                {recommended.map(([name]) => (
-                  <div key={name} className="food-card">⭐ {name}</div>
-                ))}
-              </div>
-            </div>
-          )}
-          {laterList.length > 0 && (
-            <details style={{ marginTop: 12 }}>
-              <summary style={{ cursor: "pointer", color: "#8d6e63", fontSize: 14, fontWeight: 600 }}>
-                🔜 可后续添加 ({laterList.length}种) — 首轮辅食之后逐步引入
-              </summary>
-              <div className="food-grid" style={{ marginTop: 8 }}>
-                {laterList.map(([name]) => (
-                  <div key={name} className="food-card">{name}</div>
-                ))}
-              </div>
-            </details>
-          )}
-        </>
+      {signals.length === 0 && !data.can_start && (
+        <div className="card" style={{ background: "#f5f5f5", color: "#999", textAlign: "center" }}>
+          暂未检测到明确的发育就绪信号，请结合儿科医生建议判断
+        </div>
       )}
     </div>
   );
 }
 
 /* ================================================================
-   周度计划
+   Tab 2：食材安全标签
+   ================================================================ */
+function FoodSafetyTags({ data }) {
+  if (!data) return <p style={{ color: "#999", textAlign: "center", padding: 40 }}>👈 请先完成评估以查看食材安全标签</p>;
+
+  const foods = data.food_tags || {};
+  const avoidList = Object.entries(foods).filter(([, v]) => v.tag === "avoid");
+  const cautionList = Object.entries(foods).filter(([, v]) => v.tag === "caution");
+  const recommended = Object.entries(foods).filter(([, v]) => v.tag !== "avoid" && v.tag !== "caution" && v.iron_rich);
+  const laterList = Object.entries(foods).filter(([, v]) => v.tag !== "avoid" && v.tag !== "caution" && !v.iron_rich);
+
+  if (Object.keys(foods).length === 0) {
+    return <p style={{ color: "#999", textAlign: "center", padding: 40 }}>暂无食材数据</p>;
+  }
+
+  return (
+    <div className="fade-in">
+      {avoidList.length > 0 && (
+        <div className="card" style={{ background: "#ffebee" }}>
+          <b>🚫 必须避免 ({avoidList.length}种)：</b>
+          {avoidList.map(([name, f]) => (
+            <p key={name}>· <b>{name}</b>：{(f.reasons || []).join("；")}</p>
+          ))}
+        </div>
+      )}
+
+      {cautionList.length > 0 && (
+        <div className="card" style={{ background: "#fff8e1" }}>
+          <b>⚠️ 需谨慎引入 ({cautionList.length}种)：</b>
+          {cautionList.slice(0, 5).map(([name, f]) => (
+            <p key={name}>· <b>{name}</b>：{(f.reasons || []).join("；")}</p>
+          ))}
+          {cautionList.length > 5 && (
+            <details className="caution-details">
+              <summary>…还有 {cautionList.length - 5} 种，点击展开</summary>
+              {cautionList.slice(5).map(([name, f]) => (
+                <p key={name}>· <b>{name}</b>：{(f.reasons || []).join("；")}</p>
+              ))}
+            </details>
+          )}
+        </div>
+      )}
+
+      {recommended.length > 0 && (
+        <div className="card" style={{ background: "#e8f5e9" }}>
+          <b>⭐ 优先推荐 ({recommended.length}种) — 高铁、高营养、适合首尝</b>
+          <div className="food-grid" style={{ marginTop: 8 }}>
+            {recommended.map(([name]) => (
+              <div key={name} className="food-card">⭐ {name}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {laterList.length > 0 && (
+        <details style={{ marginTop: 12 }}>
+          <summary style={{ cursor: "pointer", color: "#8d6e63", fontSize: 14, fontWeight: 600 }}>
+            🔜 可后续添加 ({laterList.length}种) — 首轮辅食之后逐步引入
+          </summary>
+          <div className="food-grid" style={{ marginTop: 8 }}>
+            {laterList.map(([name]) => (
+              <div key={name} className="food-card">{name}</div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   营养雷达图
+   ================================================================ */
+const RADAR_DATA = [
+  { nutrient: "铁", value: 85, full: 100 },
+  { nutrient: "锌", value: 60, full: 100 },
+  { nutrient: "蛋白质", value: 72, full: 100 },
+  { nutrient: "维生素C", value: 45, full: 100 },
+  { nutrient: "膳食纤维", value: 55, full: 100 },
+];
+
+function NutrientRadar() {
+  return (
+    <div className="radar-card">
+      <div className="radar-title">📊 本周营养素覆盖</div>
+      <ResponsiveContainer width="100%" height={220}>
+        <RadarChart data={RADAR_DATA} cx="50%" cy="50%" outerRadius="70%">
+          <PolarGrid stroke="#e8d5c8" />
+          <PolarAngleAxis dataKey="nutrient" tick={{ fill: "#8d6e63", fontSize: 12 }} />
+          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+          <Radar
+            name="覆盖率"
+            dataKey="value"
+            stroke="#ff9800"
+            fill="#ff9800"
+            fillOpacity={0.25}
+            strokeWidth={2}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ================================================================
+   Tab 3：周度计划
    ================================================================ */
 function WeeklyPlan({ data, onRefresh }) {
   if (!data || !data.plan) {
-    return <p style={{ color: "#999" }}>请先完成安全评估，然后生成计划</p>;
+    return (
+      <div className="fade-in">
+        <NutrientRadar />
+        <div className="card" style={{ textAlign: "center", padding: "32px 20px" }}>
+          <p style={{ color: "#999", marginBottom: 12 }}>计划尚未生成或生成失败</p>
+          <button className="btn-primary" onClick={onRefresh} style={{ padding: "8px 24px", fontSize: 14 }}>🔄 生成计划</button>
+        </div>
+      </div>
+    );
   }
 
   const plan = data.plan || [];
@@ -203,9 +274,11 @@ function WeeklyPlan({ data, onRefresh }) {
   const notes = data.nutrition_notes || [];
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 className="section-title" style={{ marginBottom: 0 }}>📅 周度辅食计划</h2>
+    <div className="fade-in">
+      <NutrientRadar />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "20px 0 16px" }}>
+        <h2 className="section-title" style={{ marginBottom: 0 }}>📅 7 日排菜</h2>
         <button className="btn-primary" onClick={onRefresh} style={{ padding: "8px 20px", fontSize: 14 }}>🔄 刷新计划</button>
       </div>
 
@@ -220,6 +293,7 @@ function WeeklyPlan({ data, onRefresh }) {
           <div key={d.day} className={`day-card ${d.is_new_food ? "new" : ""}`}>
             <div className="dn">{d.day}{d.is_new_food ? " 🆕" : ""}</div>
             {(d.foods || []).map((f) => <div key={f} className="fi">{f}</div>)}
+            {d.serving_note && <div className="sn">{d.serving_note}</div>}
           </div>
         ))}
       </div>
@@ -238,7 +312,7 @@ function WeeklyPlan({ data, onRefresh }) {
 }
 
 /* ================================================================
-   配料解析
+   Tab 4：配料解析
    ================================================================ */
 function LabelParser() {
   const [text, setText] = useState("");
@@ -257,8 +331,7 @@ function LabelParser() {
   };
 
   return (
-    <div>
-      <h2 className="section-title">🔍 配料表解析</h2>
+    <div className="fade-in">
       <div className="card">
         <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
           <input value={text} onChange={(e) => setText(e.target.value)}
@@ -344,7 +417,6 @@ function BossBabyChat() {
 
   return (
     <>
-      {/* 悬浮球 */}
       {!open && (
         <div className="bb-float">
           {tooltip && <div className="bb-tooltip" style={{ opacity: 1 }}>有问题？点我聊聊~</div>}
@@ -360,7 +432,6 @@ function BossBabyChat() {
         </div>
       )}
 
-      {/* 聊天浮窗 */}
       {open && (
         <div className="chat-overlay">
           <div className="ch">
@@ -402,6 +473,16 @@ function BossBabyChat() {
 }
 
 /* ================================================================
+   Tab 配置
+   ================================================================ */
+const TABS = [
+  { key: "stage", label: "📊 阶段判断" },
+  { key: "foods", label: "🍽️ 食材安全标签" },
+  { key: "plan", label: "📅 周度辅食计划" },
+  { key: "label", label: "🔍 配料表解析" },
+];
+
+/* ================================================================
    主 App
    ================================================================ */
 export default function App() {
@@ -412,26 +493,48 @@ export default function App() {
     feeding_method: "breast",
     tried_foods: [],
     notes: "",
+    preterm: false,
   });
   const [assessment, setAssessment] = useState(null);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("plan");
 
   const doAssess = async () => {
     setLoading(true);
+    setError(null);
+    setPlan(null);
     try {
       const r = await api.assess(profile);
       setAssessment(r);
-    } catch (e) { console.error(e); }
+      if (r.can_start) {
+        setActiveTab("plan"); // 评估通过后自动跳到计划 Tab
+        try {
+          const planR = await api.plan(profile);
+          setPlan(planR);
+        } catch (e) {
+          setError("计划生成失败：" + e.message);
+        }
+      } else {
+        setActiveTab("stage"); // 未通过则跳到阶段判断 Tab
+      }
+    } catch (e) {
+      setError("安全评估失败：" + e.message);
+    }
     setLoading(false);
   };
 
   const doPlan = async () => {
     setLoading(true);
+    setError(null);
     try {
       const r = await api.plan(profile);
       setPlan(r);
-    } catch (e) { console.error(e); }
+      setActiveTab("plan");
+    } catch (e) {
+      setError("计划生成失败：" + e.message);
+    }
     setLoading(false);
   };
 
@@ -439,33 +542,47 @@ export default function App() {
     <div className="app-container">
       <Sidebar profile={profile} setProfile={setProfile} onAssess={doAssess} />
       <main className="main-content">
-        <h1 style={{ fontSize: 24, marginBottom: 24 }}>👶 宝宝辅食助手</h1>
+        <h1 style={{ fontSize: 24, marginBottom: 8 }}>👶 宝宝辅食助手</h1>
 
         {loading && <p style={{ color: "#999", marginBottom: 16 }}>⏳ 宝宝在思考中...</p>}
 
-        <Assessment data={assessment} />
-
-        {assessment?.can_start && (
-          <>
-            <hr style={{ border: "none", borderTop: "1px solid #f0e8df", margin: "24px 0" }} />
-            <WeeklyPlan data={plan} onRefresh={doPlan} />
-          </>
+        {error && (
+          <div className="card" style={{ background: "#ffebee", color: "#c62828", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>⚠️ {error}</span>
+            <button onClick={() => setError(null)} style={{ cursor: "pointer", background: "none", border: "none", fontSize: 18, color: "#c62828" }}>✕</button>
+          </div>
         )}
 
-        {assessment && (
-          <>
-            <hr style={{ border: "none", borderTop: "1px solid #f0e8df", margin: "24px 0" }} />
-            <LabelParser />
-          </>
-        )}
+        {/* Tab 导航栏 */}
+        <nav className="tab-bar">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`tab-btn ${activeTab === tab.key ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+          <div className="tab-indicator" style={{ transform: `translateX(${TABS.findIndex((t) => t.key === activeTab) * 100}%)`, width: `${100 / TABS.length}%` }} />
+        </nav>
 
-        {!assessment && (
-          <>
-            <hr style={{ border: "none", borderTop: "1px solid #f0e8df", margin: "24px 0" }} />
-            <p style={{ color: "#999", marginBottom: 20 }}>👈 填入宝宝信息后点击「开始评估」查看完整报告</p>
-            <LabelParser />
-          </>
-        )}
+        {/* Tab 内容区 */}
+        <div className="tab-content" key={activeTab}>
+          {activeTab === "stage" && <StageAssessment data={assessment} />}
+          {activeTab === "foods" && <FoodSafetyTags data={assessment} />}
+          {activeTab === "plan" && (
+            assessment?.can_start
+              ? <WeeklyPlan data={plan} onRefresh={doPlan} />
+              : (
+                <div className="fade-in" style={{ textAlign: "center", padding: 40, color: "#999" }}>
+                  <p style={{ marginBottom: 16 }}>👈 请先完成安全评估，再生成周度辅食计划</p>
+                  <button className="btn-primary" onClick={doAssess} style={{ padding: "8px 24px", fontSize: 14 }}>🔍 开始评估</button>
+                </div>
+              )
+          )}
+          {activeTab === "label" && <LabelParser />}
+        </div>
       </main>
 
       <BossBabyChat />
