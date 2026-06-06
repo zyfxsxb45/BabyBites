@@ -489,6 +489,110 @@ function LabelParser() {
 }
 
 /* ================================================================
+   LLM 设置面板
+   ================================================================ */
+const LLM_PRESETS = [
+  { label: "DeepSeek", url: "https://api.deepseek.com", model: "deepseek-chat" },
+  { label: "OpenAI", url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  { label: "硅基流动", url: "https://api.siliconflow.cn/v1", model: "deepseek-ai/DeepSeek-V3" },
+  { label: "阿里百炼", url: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+];
+
+function SettingsPanel({ open, onClose }) {
+  const [apiKey, setApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [model, setModel] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      api.settings.getLLM().then((r) => {
+        setApiKey(r.api_key || "");
+        setBaseUrl(r.base_url || "");
+        setModel(r.model || "");
+      }).catch(() => {});
+    }
+  }, [open]);
+
+  const save = async () => {
+    if (!apiKey.trim() || !baseUrl.trim() || !model.trim()) {
+      setMsg({ type: "error", text: "请填写完整的 API Key、Base URL 和 Model" });
+      return;
+    }
+    setLoading(true);
+    setMsg(null);
+    try {
+      const r = await api.settings.saveLLM({ api_key: apiKey, base_url: baseUrl, model });
+      setMsg({ type: "success", text: r.message || "配置已保存" });
+    } catch (e) {
+      setMsg({ type: "error", text: "保存失败：" + e.message });
+    }
+    setLoading(false);
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="settings-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="settings-panel">
+        <div className="settings-header">
+          <b>⚙️ LLM 设置</b>
+          <button onClick={onClose}>✕</button>
+        </div>
+
+        <div className="settings-body">
+          <label className="fb-label">API Key</label>
+          <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
+            placeholder="sk-..."
+            style={inputStyle} />
+
+          <label className="fb-label">Base URL</label>
+          <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder="https://api.openai.com/v1"
+            style={inputStyle} />
+
+          <label className="fb-label">Model</label>
+          <input value={model} onChange={(e) => setModel(e.target.value)}
+            placeholder="gpt-4o-mini"
+            style={inputStyle} />
+
+          <label className="fb-label" style={{ marginTop: 12 }}>快速切换预设</label>
+          <div className="chip-group" style={{ maxHeight: "none" }}>
+            {LLM_PRESETS.map((p) => (
+              <span key={p.label} className="chip"
+                onClick={() => { setBaseUrl(p.url); setModel(p.model); }}
+                style={{ cursor: "pointer" }}>
+                {p.label}
+              </span>
+            ))}
+          </div>
+
+          {msg && (
+            <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 10, background: msg.type === "success" ? "#e8f5e9" : "#ffebee", color: msg.type === "success" ? "#2e7d32" : "#c62828", fontSize: 13 }}>
+              {msg.text}
+            </div>
+          )}
+
+          <button className="btn-primary" onClick={save} disabled={loading}
+            style={{ marginTop: 16, width: "100%" }}>
+            {loading ? "保存中…" : "💾 保存并生效"}
+          </button>
+          <p style={{ fontSize: 11, color: "#bbb", textAlign: "center", marginTop: 8 }}>
+            配置保存在服务器端，重启后仍然有效
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%", border: "1.5px solid #e8d5c8", borderRadius: 10,
+  padding: "8px 12px", fontSize: 14, boxSizing: "border-box",
+};
+
+/* ================================================================
    Boss Baby 悬浮球 + 聊天浮窗
    ================================================================ */
 function BossBabyChat() {
@@ -759,6 +863,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("plan");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const doAssess = async () => {
     setLoading(true);
@@ -801,7 +906,10 @@ export default function App() {
     <div className="app-container">
       <Sidebar profile={profile} setProfile={setProfile} onAssess={doAssess} />
       <main className="main-content">
-        <h1 style={{ fontSize: 24, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo.png" alt="logo" className="logo-img-small" />宝宝辅食助手</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <h1 style={{ fontSize: 24, margin: 0, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo.png" alt="logo" className="logo-img-small" />宝宝辅食助手</h1>
+          <button className="settings-gear" onClick={() => setSettingsOpen(true)} title="LLM 设置">⚙️</button>
+        </div>
 
         {loading && <p style={{ color: "#999", marginBottom: 16 }}>⏳ 宝宝在思考中...</p>}
 
@@ -849,6 +957,7 @@ export default function App() {
         </div>
       </main>
 
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <BossBabyChat />
     </div>
   );

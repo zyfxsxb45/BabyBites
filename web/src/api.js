@@ -45,4 +45,13 @@ export const api = {
     get: () => request("/api/feedback"),
     clear: () => request("/api/feedback", { method: "DELETE" }),
   },
+
+  settings: {
+    getLLM: () => request("/api/settings/llm"),
+    saveLLM: (data) =>
+      request("/api/settings/llm", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
 };

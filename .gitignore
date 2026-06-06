@@ -24,6 +24,12 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# LLM 设置（含 API Key，不提交）
+data/llm_settings.json
+
+# 用户反馈数据（含个人隐私）
+data/feedback.json
+
 # ===== 模型文件（如果有自己的微调模型）=====
 *.pt
 *.pth

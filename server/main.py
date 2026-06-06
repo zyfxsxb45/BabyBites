@@ -261,6 +261,89 @@ def clear_feedback():
 
 
 # ================================================================
+# LLM 设置（热重载）
+# ================================================================
+
+SETTINGS_PATH = Path(__file__).parent.parent / "data" / "llm_settings.json"
+
+
+def _load_llm_settings() -> dict:
+    if SETTINGS_PATH.exists():
+        try:
+            import json as _json
+            return _json.loads(open(SETTINGS_PATH, encoding="utf-8").read())
+        except Exception:
+            pass
+    return {}
+
+
+def _save_llm_settings(settings: dict):
+    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    import json as _json
+    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+        _json.dump(settings, f, ensure_ascii=False, indent=2)
+
+
+def _reload_llm(api_key: str, base_url: str, model: str):
+    """热重载 LLM：更新全局 llm 实例和所有已初始化的 Agent"""
+    global llm, safety_agent, plan_agent, label_agent, chat_agent
+    from llm.openai_adapter import OpenAIAdapter
+    new_llm = OpenAIAdapter(api_key=api_key, base_url=base_url, model=model)
+    llm = new_llm
+    safety_agent._llm = new_llm
+    plan_agent.llm = new_llm
+    label_agent.llm = new_llm
+    chat_agent.llm = new_llm
+    return new_llm
+
+
+@app.get("/api/settings/llm")
+def get_llm_settings():
+    """获取当前 LLM 配置（API Key 脱敏）"""
+    saved = _load_llm_settings()
+    api_key = saved.get("api_key", llm.api_key if hasattr(llm, "api_key") else "")
+    # 脱敏：只显示前4后4
+    masked = api_key[:4] + "****" + api_key[-4:] if len(api_key) > 8 else "****"
+    return {
+        "api_key": api_key,
+        "api_key_masked": masked,
+        "base_url": saved.get("base_url", llm.base_url if hasattr(llm, "base_url") else ""),
+        "model": saved.get("model", llm.model if hasattr(llm, "model") else ""),
+    }
+
+
+class LLMSettingsRequest(BaseModel):
+    api_key: str
+    base_url: str
+    model: str
+
+
+@app.post("/api/settings/llm")
+def update_llm_settings(req: LLMSettingsRequest):
+    """更新 LLM 配置并热重载"""
+    try:
+        # 保存到文件
+        settings = {
+            "api_key": req.api_key,
+            "base_url": req.base_url,
+            "model": req.model,
+        }
+        _save_llm_settings(settings)
+
+        # 热重载
+        _reload_llm(req.api_key, req.base_url, req.model)
+
+        return {
+            "status": "ok",
+            "message": f"LLM 配置已更新，当前模型：{req.model}",
+            "model": req.model,
+            "base_url": req.base_url,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"配置更新失败：{str(e)}")
+
+
+# ================================================================
 # 启动
 # ================================================================
 
