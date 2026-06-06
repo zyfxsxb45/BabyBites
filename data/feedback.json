@@ -8,6 +8,15 @@
       "date": "2026-06-04",
       "notes": "",
       "created_at": "2026-06-04T20:22:14.909224"
+    },
+    {
+      "id": "fb_f83d5600",
+      "food_name": "香蕉",
+      "reaction": "none",
+      "severity": "mild",
+      "date": "2026-06-07",
+      "notes": "",
+      "created_at": "2026-06-07T02:01:25.505023"
     }
   ]
 }

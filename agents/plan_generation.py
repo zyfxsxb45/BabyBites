@@ -233,9 +233,45 @@ class PlanGenerationAgent(LLMAgent):
                 "serving_note": f"{meals_per_day}，从少量开始" + (
                     " 🆕新食材，观察3-5天" if is_new else ""
                 ),
+                "food_details": self._build_food_details(day_foods, stage),
             })
 
         return plan
+
+    def _build_food_details(self, food_names: list[str], stage: dict) -> dict:
+        """为每天的食物构建详情：做法、质地、营养、注意事项"""
+        details = {}
+        texture_map = {
+            "puree": "泥糊状", "mashed": "碎末状",
+            "finger_food": "手指食物", "soft": "软烂",
+        }
+        stage_texture = stage.get("texture", "泥糊状") if stage else "泥糊状"
+
+        for name in food_names:
+            food = self.kb.get_food_by_name(name) if self.kb else None
+            if not food:
+                details[name] = {"notes": "该食材未收录详细信息"}
+                continue
+
+            texture = food.get("texture_stage", "")
+            texture_zh = texture_map.get(texture, texture)
+            notes = food.get("notes_zh", "")
+            nutrients = food.get("nutrients", {})
+            nutrient_summary = ", ".join(
+                f"{k} {v.get('value', '')}{v.get('unit', '')}"
+                for k, v in list(nutrients.items())[:4]
+            ) if nutrients else ""
+
+            # 组装做法建议
+            preparation = notes  # notes_zh 已包含做法和注意事项
+
+            details[name] = {
+                "notes": preparation,
+                "texture": texture_zh,
+                "nutrients": nutrient_summary,
+                "stage_note": f"当前阶段建议{stage_texture}，该食材质地为{texture_zh}",
+            }
+        return details
 
     def _get_nutrition_notes(self, plan: list) -> list[str]:
         """生成营养说明"""
