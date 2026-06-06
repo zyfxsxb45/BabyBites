@@ -483,6 +483,155 @@ const TABS = [
 ];
 
 /* ================================================================
+   每日喂养反馈
+   ================================================================ */
+function DailyFeedback({ plan, onFeedbackSubmit }) {
+  const todayPlan = plan?.plan || [];
+  const todayIdx = new Date().getDay(); // 0=Sun ... 6=Sat
+  const todayName = ["周日","周一","周二","周三","周四","周五","周六"][todayIdx];
+  const todayFoods = todayPlan.find((d) => d.day === todayName)?.foods || [];
+  const allPlanFoods = [...new Set(todayPlan.flatMap((d) => d.foods || []))];
+
+  const [foodName, setFoodName] = useState("");
+  const [reaction, setReaction] = useState("none");
+  const [severity, setSeverity] = useState("mild");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [feedbackHistory, setFeedbackHistory] = useState(null);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    api.feedback.get().then(setFeedbackHistory).catch(() => {});
+  }, [plan]);
+
+  const submit = async () => {
+    if (!foodName.trim()) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await api.feedback.submit({
+        food_name: foodName,
+        reaction,
+        severity: reaction === "none" ? "mild" : severity,
+        notes,
+      });
+      setMessage({ type: "success", text: `已记录「${foodName}」的反馈` });
+      setFoodName("");
+      setReaction("none");
+      setSeverity("mild");
+      setNotes("");
+      const r = await api.feedback.get();
+      setFeedbackHistory(r);
+      if (onFeedbackSubmit) await onFeedbackSubmit();
+    } catch (e) {
+      setMessage({ type: "error", text: "提交失败：" + e.message });
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <h2 className="section-title">📝 每日喂养反馈</h2>
+
+      {/* 反馈表单 */}
+      <div className="card">
+        <label className="fb-label">反馈食材</label>
+        {allPlanFoods.length > 0 ? (
+          <>
+            <div className="chip-group" style={{ maxHeight: "none", marginBottom: todayFoods.length > 0 ? 8 : 0 }}>
+              {(todayFoods.length > 0 ? todayFoods : allPlanFoods).map((f) => (
+                <span key={f} className={`chip ${foodName === f ? "active" : ""}`}
+                  onClick={() => setFoodName(f)}>{f}</span>
+              ))}
+            </div>
+            {todayFoods.length > 0 && allPlanFoods.length > todayFoods.length && (
+              <details style={{ marginBottom: 8 }}>
+                <summary style={{ fontSize: 12, color: "#999", cursor: "pointer" }}>本周其他食材</summary>
+                <div className="chip-group" style={{ maxHeight: "none", marginTop: 6 }}>
+                  {allPlanFoods.filter((f) => !todayFoods.includes(f)).map((f) => (
+                    <span key={f} className={`chip ${foodName === f ? "active" : ""}`}
+                      onClick={() => setFoodName(f)}>{f}</span>
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
+        ) : (
+          <input value={foodName} onChange={(e) => setFoodName(e.target.value)}
+            placeholder="输入食材名称"
+            style={{ width: "100%", border: "1.5px solid #e8d5c8", borderRadius: 10, padding: "8px 12px", fontSize: 14 }} />
+        )}
+
+        <label className="fb-label">宝宝反应</label>
+        <div className="chip-group" style={{ maxHeight: "none" }}>
+          {[
+            { key: "none", label: "✅ 无不良反应" },
+            { key: "rash", label: "🔴 皮疹" },
+            { key: "diarrhea", label: "💧 腹泻" },
+            { key: "vomiting", label: "🤮 呕吐" },
+            { key: "refusal", label: "🙅 拒食" },
+            { key: "other", label: "❓ 其他" },
+          ].map((r) => (
+            <span key={r.key} className={`chip ${reaction === r.key ? "active" : ""}`}
+              onClick={() => setReaction(r.key)}>{r.label}</span>
+          ))}
+        </div>
+
+        {reaction !== "none" && (
+          <>
+            <label className="fb-label">严重程度</label>
+            <div className="chip-group" style={{ maxHeight: "none" }}>
+              {[
+                { key: "mild", label: "🟡 轻度" },
+                { key: "moderate", label: "🟠 中度" },
+                { key: "severe", label: "🔴 重度" },
+              ].map((s) => (
+                <span key={s.key} className={`chip ${severity === s.key ? "active" : ""}`}
+                  onClick={() => setSeverity(s.key)}>{s.label}</span>
+              ))}
+            </div>
+          </>
+        )}
+
+        <label className="fb-label">备注（可选）</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="如：吃完2小时后脸上出红点..."
+          style={{ width: "100%", border: "1.5px solid #e8d5c8", borderRadius: 10, padding: "8px 12px", fontSize: 14, resize: "vertical", minHeight: 50, fontFamily: "inherit", boxSizing: "border-box" }} />
+
+        {message && (
+          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: message.type === "success" ? "#e8f5e9" : "#ffebee", color: message.type === "success" ? "#2e7d32" : "#c62828", fontSize: 13 }}>
+            {message.text}
+          </div>
+        )}
+
+        <button className="btn-primary" onClick={submit} disabled={submitting || !foodName}
+          style={{ marginTop: 14, width: "100%" }}>
+          {submitting ? "提交中…" : "💾 提交反馈并刷新计划"}
+        </button>
+      </div>
+
+      {/* 反馈历史 */}
+      {feedbackHistory && feedbackHistory.total > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <b style={{ fontSize: 14 }}>📋 反馈记录（{feedbackHistory.total}条）</b>
+          {feedbackHistory.avoid_foods?.length > 0 && (
+            <p style={{ marginTop: 8, fontSize: 13, color: "#c62828" }}>🚫 已避免：{feedbackHistory.avoid_foods.join("、")}</p>
+          )}
+          {feedbackHistory.caution_foods?.length > 0 && (
+            <p style={{ marginTop: 4, fontSize: 13, color: "#e65100" }}>⚠️ 需谨慎：{feedbackHistory.caution_foods.join("、")}</p>
+          )}
+          {feedbackHistory.by_reaction && (
+            <p style={{ marginTop: 4, fontSize: 12, color: "#999" }}>
+              {Object.entries(feedbackHistory.by_reaction).map(([k, v]) => `${k}:${v}次`).join(" · ")}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
    主 App
    ================================================================ */
 export default function App() {
@@ -573,7 +722,12 @@ export default function App() {
           {activeTab === "foods" && <FoodSafetyTags data={assessment} />}
           {activeTab === "plan" && (
             assessment?.can_start
-              ? <WeeklyPlan data={plan} onRefresh={doPlan} />
+              ? (
+                <>
+                  <WeeklyPlan data={plan} onRefresh={doPlan} />
+                  <DailyFeedback plan={plan} onFeedbackSubmit={doPlan} />
+                </>
+              )
               : (
                 <div className="fade-in" style={{ textAlign: "center", padding: 40, color: "#999" }}>
                   <p style={{ marginBottom: 16 }}>👈 请先完成安全评估，再生成周度辅食计划</p>

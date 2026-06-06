@@ -153,6 +153,9 @@ body {
 .food-card { background: #fff; border: 1.5px solid #f0e8df; border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: transform .15s; }
 .food-card:hover { transform: translateY(-2px); }
 
+/* feedback form */
+.fb-label { font-weight: 600; font-size: 13px; color: #8d6e63; margin: 12px 0 8px; display: block; }
+
 /* ingredient */
 .ing-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 10px; margin: 4px 0; background: #fefaf7; border-left: 4px solid transparent; }
 .ing-row.avoid { border-left-color: var(--red); background: #fff5f5; }
