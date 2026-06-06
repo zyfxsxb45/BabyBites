@@ -20,7 +20,7 @@ function Sidebar({ profile, setProfile, onAssess }) {
 
   return (
     <aside className="sidebar">
-      <div className="logo"><span>🍼</span>宝宝巴适</div>
+      <div className="logo"><img src="/logo.png" alt="logo" className="logo-img" />宝宝巴适</div>
 
       <div className="age-row">
         <div className="field">
@@ -290,6 +290,30 @@ function NutrientRadar() {
    Tab 3：周度计划
    ================================================================ */
 function WeeklyPlan({ data, onRefresh }) {
+  const [planStartedAt, setPlanStartedAt] = useState(() => {
+    return localStorage.getItem("bb_plan_start") || null;
+  });
+
+  // 记录计划开始日期 & 计算已执行天数
+  useEffect(() => {
+    if (data?.plan?.length > 0) {
+      const stored = localStorage.getItem("bb_plan_start");
+      if (!stored) {
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem("bb_plan_start", today);
+        setPlanStartedAt(today);
+      }
+    }
+  }, [data]);
+
+  const today = new Date();
+  const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const todayStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日 ${weekdays[today.getDay()]}`;
+
+  const daysElapsed = planStartedAt
+    ? Math.max(1, Math.ceil((today - new Date(planStartedAt)) / (1000 * 60 * 60 * 24)))
+    : 0;
+
   if (!data || !data.plan) {
     return (
       <div className="fade-in">
@@ -310,6 +334,52 @@ function WeeklyPlan({ data, onRefresh }) {
     <div className="fade-in">
       <NutrientRadar />
 
+      {/* 今日状态栏 */}
+      <div className="plan-status-bar">
+        <div className="plan-status-item">
+          <span className="plan-status-icon">📅</span>
+          <span className="plan-status-label">今天</span>
+          <span className="plan-status-value">{todayStr}</span>
+        </div>
+        <div className="plan-status-divider" />
+        <div className="plan-status-item">
+          <span className="plan-status-icon">⏱️</span>
+          <span className="plan-status-label">已执行</span>
+          <span className="plan-status-value">{daysElapsed} 天</span>
+        </div>
+        <div className="plan-status-divider" />
+        <div className="plan-status-item">
+          <span className="plan-status-icon">🎯</span>
+          <span className="plan-status-label">计划开始</span>
+          <span className="plan-status-value">{planStartedAt || todayStr}</span>
+        </div>
+      </div>
+
+      {/* 今日与计划的关系提示 */}
+      {(() => {
+        const planDates = plan.map((d) => d.date).filter(Boolean).sort();
+        if (planDates.length > 0) {
+          const first = planDates[0], last = planDates[planDates.length - 1];
+          const todayISO = today.toISOString().slice(0, 10);
+          if (todayISO < first) {
+            const daysUntil = Math.ceil((new Date(first) - today) / 86400000);
+            return (
+              <div style={{ textAlign: "center", marginTop: 8, fontSize: 12, color: "#8d6e63" }}>
+                📋 计划将于 {daysUntil} 天后（{first}）开始，可以先熟悉食材哦
+              </div>
+            );
+          }
+          if (todayISO > last) {
+            return (
+              <div style={{ textAlign: "center", marginTop: 8, fontSize: 12, color: "#e65100" }}>
+                ⚠️ 本周计划已结束，点击「刷新计划」生成新一周安排
+              </div>
+            );
+          }
+        }
+        return null;
+      })()}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "20px 0 16px" }}>
         <h2 className="section-title" style={{ marginBottom: 0 }}>📅 7 日排菜</h2>
         <button className="btn-primary" onClick={onRefresh} style={{ padding: "8px 20px", fontSize: 14 }}>🔄 刷新计划</button>
@@ -322,13 +392,20 @@ function WeeklyPlan({ data, onRefresh }) {
       )}
 
       <div className="week-calendar">
-        {plan.map((d) => (
-          <div key={d.day} className={`day-card ${d.is_new_food ? "new" : ""}`}>
-            <div className="dn">{d.day}{d.is_new_food ? " 🆕" : ""}</div>
-            {(d.foods || []).map((f) => <div key={f} className="fi">{f}</div>)}
-            {d.serving_note && <div className="sn">{d.serving_note}</div>}
-          </div>
-        ))}
+        {plan.map((d) => {
+          const isToday = d.date === today.toISOString().slice(0, 10);
+          return (
+            <div key={d.day} className={`day-card ${d.is_new_food ? "new" : ""} ${isToday ? "today" : ""}`}>
+              <div className="dn">
+                {d.day}{d.is_new_food ? " 🆕" : ""}
+                {isToday && <span className="today-badge">今天</span>}
+              </div>
+              <div className="dd">{d.date?.slice(5)}</div>
+              {(d.foods || []).map((f) => <div key={f} className="fi">{f}</div>)}
+              {d.serving_note && <div className="sn">{d.serving_note}</div>}
+            </div>
+          );
+        })}
       </div>
 
       {notes.length > 0 && (
@@ -468,7 +545,7 @@ function BossBabyChat() {
       {open && (
         <div className="chat-overlay">
           <div className="ch">
-            <b>👶 宝宝巴适 · 智能问答</b>
+            <b><img src="/logo.png" alt="logo" className="logo-img-xs" />宝宝巴适 · 智能问答</b>
             <button onClick={() => setOpen(false)}>✕</button>
           </div>
           <div className="q-row">
@@ -724,7 +801,7 @@ export default function App() {
     <div className="app-container">
       <Sidebar profile={profile} setProfile={setProfile} onAssess={doAssess} />
       <main className="main-content">
-        <h1 style={{ fontSize: 24, marginBottom: 8 }}>👶 宝宝辅食助手</h1>
+        <h1 style={{ fontSize: 24, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo.png" alt="logo" className="logo-img-small" />宝宝辅食助手</h1>
 
         {loading && <p style={{ color: "#999", marginBottom: 16 }}>⏳ 宝宝在思考中...</p>}
 

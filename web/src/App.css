@@ -17,6 +17,9 @@ body {
 }
 .sidebar .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; color: #ff8a65; }
 .sidebar .logo span { font-size: 32px; }
+.logo-img { width: 36px; height: 36px; border-radius: 8px; object-fit: contain; }
+.logo-img-small { width: 28px; height: 28px; border-radius: 6px; object-fit: contain; }
+.logo-img-xs { width: 20px; height: 20px; border-radius: 4px; object-fit: contain; vertical-align: middle; margin-right: 2px; }
 .sidebar .field { display: flex; flex-direction: column; gap: 4px; }
 .sidebar label { font-size: 13px; font-weight: 600; color: var(--text-light); }
 .sidebar input, .sidebar select, .sidebar textarea {
@@ -93,6 +96,20 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ===== 计划状态栏 ===== */
+.plan-status-bar {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  background: #fff; border-radius: 14px; padding: 14px 20px;
+  box-shadow: var(--shadow); margin-bottom: 8px;
+}
+.plan-status-item {
+  display: flex; align-items: center; gap: 6px; padding: 0 16px;
+}
+.plan-status-icon { font-size: 18px; }
+.plan-status-label { font-size: 12px; color: var(--text-light); }
+.plan-status-value { font-size: 14px; font-weight: 700; color: var(--text); }
+.plan-status-divider { width: 1px; height: 28px; background: #f0e8df; }
+
 /* ===== 雷达图卡片 ===== */
 .radar-card {
   background: #fff; border-radius: var(--radius);
@@ -135,10 +152,21 @@ body {
   box-shadow: 0 2px 14px rgba(255,152,0,0.12);
 }
 .day-card.new:hover { box-shadow: 0 6px 22px rgba(255,152,0,0.2); }
-.day-card .dn { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.day-card.today {
+  border-top: 3px solid #4caf50;
+  box-shadow: 0 0 0 2px rgba(76,175,80,.25), 0 2px 14px rgba(0,0,0,.08);
+  position: relative;
+}
+.day-card.today.new { border-top: 3px solid #ff9800; }
+.day-card .dn { font-weight: 700; font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.day-card .dd { font-size: 10px; color: #bbb; margin-bottom: 4px; }
 .day-card .fi { background: #fef5e7; border-radius: 8px; padding: 2px 6px; font-size: 13px; margin: 2px 0; }
 .day-card .sn { font-size: 10px; color: #999; margin-top: 6px; line-height: 1.4; }
 .day-card .tag { margin-top: 2px; }
+.today-badge {
+  font-size: 10px; background: #4caf50; color: #fff;
+  padding: 1px 6px; border-radius: 8px; font-weight: 600;
+}
 
 /* ===== 谨慎引入可展开 ===== */
 .caution-details { margin-top: 8px; }
