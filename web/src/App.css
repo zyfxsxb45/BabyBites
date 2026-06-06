@@ -47,6 +47,8 @@ body {
 }
 .chip:hover { border-color: var(--orange); box-shadow: 0 2px 8px rgba(255,152,0,.15); transform: translateY(-1px); }
 .chip.active { background: var(--orange); color: #fff; border-color: var(--orange); box-shadow: 0 2px 8px rgba(255,152,0,.3); }
+.chip.custom { border-style: dashed; background: #fff8e1; border-color: #ffcc80; }
+.chip.custom.active { background: #f57c00; border-style: solid; }
 
 .btn-primary {
   background: linear-gradient(135deg, #ff9800, #f57c00);

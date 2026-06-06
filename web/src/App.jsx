@@ -55,6 +55,29 @@ function Sidebar({ profile, setProfile, onAssess }) {
               {a}
             </span>
           ))}
+          {/* 自定义过敏原：可移除 */}
+          {(profile.allergies || [])
+            .filter((a) => !ALLERGENS.includes(a))
+            .map((a) => (
+              <span key={a} className="chip custom active" onClick={() => toggle("allergies", a)}>
+                {a} <span style={{ marginLeft: 2, opacity: 0.7 }}>✕</span>
+              </span>
+            ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+          <input
+            placeholder="输入其他过敏原…"
+            style={{ flex: 1, border: "1.5px solid #e8d5c8", borderRadius: 8, padding: "5px 10px", fontSize: 12 }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.target.value.trim()) {
+                const val = e.target.value.trim();
+                if (!(profile.allergies || []).includes(val)) {
+                  setProfile({ ...profile, allergies: [...(profile.allergies || []), val] });
+                }
+                e.target.value = "";
+              }
+            }}
+          />
         </div>
       </div>
 
@@ -122,6 +145,16 @@ function StageAssessment({ data }) {
       {data.recommendation && (
         <div className="card" style={{ background: data.can_start ? "#e8f5e9" : "#fff3e0" }}>
           {data.recommendation}
+        </div>
+      )}
+
+      {(data.notes_avoid_foods || []).length > 0 && (
+        <div className="card" style={{ background: "#fff3e0", borderLeft: "4px solid #ff9800" }}>
+          <b>📝 从备注中检测到以下食材过敏/不耐受：</b>
+          {data.notes_avoid_foods.map((f, i) => (
+            <span key={i} style={{ display: "inline-block", margin: "4px 6px 0 0", padding: "2px 10px", background: "#ffcc80", color: "#e65100", borderRadius: 6, fontSize: 13, fontWeight: 600 }}>{f}</span>
+          ))}
+          <p style={{ marginTop: 8, fontSize: 12, color: "#8d6e63" }}>已在食材安全标签中自动标记为「🚫 避免」</p>
         </div>
       )}
 

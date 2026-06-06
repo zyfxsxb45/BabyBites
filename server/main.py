@@ -31,7 +31,7 @@ print("🔧 初始化 BabyBites 后端...")
 kb = init_kb()
 llm = init_llm()
 engine = RuleEngine(kb)
-safety_agent = SafetyBoundaryAgent(kb=kb, rule_engine=engine)
+safety_agent = SafetyBoundaryAgent(kb=kb, rule_engine=engine, llm=llm)
 plan_agent = PlanGenerationAgent(kb=kb, llm=llm)
 label_agent = LabelParsingAgent(kb=kb, llm=llm)
 chat_agent = ChatAgent(kb=kb, llm=llm)
@@ -139,6 +139,8 @@ def assess(req: AssessRequest):
         "blocking_reasons": result["blocking_reasons"],
         "recommendation": result["recommendation"],
         "food_tags": food_tags,
+        "notes_avoid_foods": result.get("notes_avoid_foods", []),
+        "direct_avoid_foods": result.get("direct_avoid_foods", []),
     }
 
 
@@ -149,6 +151,17 @@ def generate_plan(req: PlanRequest):
     """生成一周辅食计划"""
     profile = req.profile.model_dump()
     stage = kb.get_age_stage(profile["age_months"])
+
+    # 从备注中提取过敏/不耐受食材，注入过敏原列表（以便 engine 统一拦截）
+    notes = profile.get("notes", "")
+    if notes:
+        all_foods_for_notes = kb.list_foods_by_age(profile["age_months"])
+        candidate_for_notes = [{"food_data": f} for f in all_foods_for_notes]
+        llm_avoid = safety_agent._llm_extract_allergies_from_notes(notes, candidate_for_notes)
+        kw_avoid = safety_agent._extract_avoid_foods_from_notes(notes, candidate_for_notes)
+        notes_avoid = llm_avoid | kw_avoid
+        if notes_avoid:
+            profile["allergies"] = list(set(profile.get("allergies", [])) | notes_avoid)
 
     # 安全食材池
     all_foods = kb.list_foods_by_age(profile["age_months"])

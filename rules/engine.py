@@ -90,6 +90,29 @@ class RuleEngine:
                 )
             )
 
+        # 6. 直接食材名匹配：过敏原列表可能直接包含食材名（如"山药"、"虾仁"）
+        #    这是自定义过敏原的兜底——不依赖过敏原 ID 解析，直接按名称匹配
+        allergy_set = set(baby_profile.get("allergies", []))
+        if allergy_set:
+            food_name = food.get("name_zh", "")
+            food_aliases = set(
+                food.get("aliases", [])
+                if isinstance(food.get("aliases"), list)
+                else []
+            )
+            food_aliases.add(food_name)
+            if food_aliases & allergy_set:
+                matched = list(food_aliases & allergy_set)
+                results.append(
+                    RuleResult(
+                        tag="avoid",
+                        reason=f"家长标注「{'、'.join(matched)}」为过敏原，自动排除",
+                        rule_name="直接食材名过敏匹配",
+                        source="用户标注",
+                        severity="error",
+                    )
+                )
+
         return RuleOutput(results=results)
 
     def validate_plan(
