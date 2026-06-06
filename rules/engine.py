@@ -61,6 +61,40 @@ class RuleEngine:
             )
         )
 
+        # 1.5. 外部食材特有检查：窒息风险
+        if food.get("_is_choking_risk"):
+            results.append(RuleResult(
+                tag="caution",
+                reason=f"{food.get('name_zh', '该食材')}存在窒息风险（整颗圆形硬质食物），"
+                       f"需切成小块或避免直接给整颗",
+                rule_name="窒息风险提示",
+                source="CDC窒息预防指南",
+                severity="warning",
+            ))
+
+        # 1.6. 外部食材特有检查：高钠
+        sodium = food.get("_sodium_mg")
+        if food.get("_contains_added_salt") or (sodium is not None and sodium > 200):
+            results.append(RuleResult(
+                tag="caution" if sodium and sodium <= 400 else "avoid",
+                reason=f"{food.get('name_zh', '该食材')}含添加盐"
+                       + (f"（钠含量 {sodium:.0f}mg/100g）" if sodium else "")
+                       + "，1岁以下婴儿应避免额外摄入盐分",
+                rule_name="添加盐/高钠拦截",
+                source="WHO / CDC婴儿喂养指南",
+                severity="warning" if sodium and sodium <= 400 else "error",
+            ))
+
+        # 1.7. 外部食材特有检查：添加糖
+        if food.get("_contains_added_sugar"):
+            results.append(RuleResult(
+                tag="caution",
+                reason=f"{food.get('name_zh', '该食材')}含添加糖，婴儿辅食不应额外加糖",
+                rule_name="添加糖提示",
+                source="WHO / CDC婴儿喂养指南",
+                severity="warning",
+            ))
+
         # 2. 月龄适龄
         results.append(
             check_age_appropriate(

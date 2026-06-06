@@ -49,10 +49,66 @@ class LLMAgent(BaseAgent):
         output_schema: dict,
         **kwargs,
     ) -> dict:
-        """调用 LLM 并解析为结构化输出"""
+        """调用 LLM 并解析为结构化 dict。
+
+        自动处理常见 LLM 输出格式：
+          - 纯 JSON: {"age_months": 6}
+          - ```json ... ``` 代码块
+          - 带前后文字的 JSON
+        """
+        import json
         response = self._ask_llm(system_prompt, user_message, **kwargs)
-        # 子类可 override 做更复杂的解析
+        if not response:
+            return _default_profile(output_schema)
+
+        text = response.strip()
+
+        # 尝试多种解析策略
+        for strategy in [
+            lambda t: json.loads(t),                          # 纯 JSON
+            lambda t: json.loads(_extract_code_block(t)),      # ```json ... ```
+            lambda t: json.loads(_extract_code_block(t, "")),  # ``` ... ```
+            lambda t: json.loads(_extract_first_json(t)),      # 提取第一个 {}
+        ]:
+            try:
+                return strategy(text)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                continue
+
+        # 所有策略失败，返回 raw
         return {"raw": response, "schema": output_schema}
+
+
+def _extract_code_block(text: str, tag: str = "json") -> str:
+    """提取 ```lang ... ``` 代码块内容"""
+    marker = f"```{tag}" if tag else "```"
+    if marker not in text:
+        raise ValueError("no code block")
+    start = text.index(marker) + len(marker)
+    end = text.index("```", start)
+    return text[start:end].strip()
+
+
+def _extract_first_json(text: str) -> str:
+    """提取文本中第一个完整 JSON 对象"""
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("no JSON object")
+    # 简单的括号计数找闭合
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i+1]
+    raise ValueError("unclosed JSON")
+
+
+def _default_profile(schema: dict) -> dict:
+    """根据 schema 生成默认值"""
+    return {k: v.get("type", "") for k, v in schema.items() if isinstance(v, dict)}
 
 
 class RuleAgent(BaseAgent):

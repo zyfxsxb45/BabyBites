@@ -68,10 +68,29 @@ def render_chat_page(chat_agent, kb=None):
                     for h in st.session_state.chat_history
                     if h["role"] == "assistant"
                 ],
+                "current_profile": st.session_state.get("baby_profile", {}),
             })
 
         answer = result.get("answer") or "抱歉，我暂时无法回答这个问题。"
         sources = result.get("sources", [])
+
+        # 合并 Chat 提取的 profile 增量
+        insights = result.get("profile_insights", {})
+        if insights:
+            bp = st.session_state.get("baby_profile", {})
+            changed = []
+            if "allergies" in insights:
+                bp["allergies"] = insights["allergies"]
+                changed.append(f"过敏原→{insights['allergies']}")
+            if "tried_foods" in insights:
+                bp["tried_foods"] = insights["tried_foods"]
+                changed.append(f"已尝试→新增{len(insights['tried_foods'])}种")
+            if "age_months" in insights:
+                bp["age_months"] = insights["age_months"]
+                changed.append(f"月龄→{insights['age_months']}月")
+            st.session_state.baby_profile = bp
+            if changed:
+                st.caption(f"💡 已自动更新宝宝信息：{' · '.join(changed)}")
 
         # 显示助手回答
         with st.chat_message("assistant"):

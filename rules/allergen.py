@@ -16,18 +16,47 @@ def check_known_allergy(
     baby_allergies: list[str],
     kb=None,
     llm=None,
+    strict_mode: bool = False,
 ) -> RuleResult:
     """
-    检查食材是否含有宝宝已知过敏原。支持语义匹配：
-      - 日常用语展开："海鲜" → ["鱼类", "虾"]
-      - 别名匹配："蛋" → 鸡蛋
-      - umbrella term 双向解析
+    检查食材是否含有宝宝已知过敏原。支持语义匹配。
+
+    Args:
+        strict_mode: 严格模式。True 时，潜在过敏原仅在没有已知过敏命中时才标 caution，
+                     且不会因为"该食物本身就是潜在过敏原"而过度保守。
+                     False 时，保持现有行为（所有潜在过敏原都标 caution）。
     """
     if not baby_allergies:
         return make_suitable("过敏原检查", "宝宝无已知过敏原")
 
     food_name = food.get("name_zh", food.get("id", "未知食材"))
     food_allergen = food.get("allergen")
+
+    # 外部食材：检查 _allergen_flags
+    if food.get("_external"):
+        ext_flags = food.get("_allergen_flags", {})
+        for ext_key, internal_name in [
+            ("contains_milk", "牛奶"), ("contains_egg", "鸡蛋"),
+            ("contains_wheat", "小麦"), ("contains_soy", "大豆"),
+            ("contains_peanut", "花生"), ("contains_tree_nut", "坚果"),
+            ("contains_fish", "鱼类"), ("contains_shellfish", "虾"),
+        ]:
+            if ext_flags.get(ext_key):
+                # 检查宝宝是否对该过敏原有已知过敏
+                for allergy_term in baby_allergies:
+                    if kb and hasattr(kb, "_find_allergen_id_by_name"):
+                        aid = kb._find_allergen_id_by_name(internal_name)
+                        if aid and aid in resolved_allergy_ids:
+                            return RuleResult(
+                                tag="avoid",
+                                reason=f"{food_name}{'含' if food_allergen else '可能含'}{internal_name}，"
+                                       f"与宝宝已知过敏原冲突",
+                                rule_name="已知过敏原拦截（外部食材）",
+                                source="外部数据 / CDC指南",
+                                severity="error",
+                            )
+                # 食材含该过敏原但宝宝没被标记，标记为潜在过敏
+                food_allergen = food_allergen or internal_name
 
     # 解析宝宝的过敏原：用户输入的日常用语 → 标准过敏原 ID 列表
     resolved_allergy_ids = set()
@@ -72,8 +101,14 @@ def check_known_allergy(
             severity="error",
         )
 
-    # 食材是潜在致敏物、有可能触发未确认的交叉过敏
+    # 食材是潜在致敏物
     if food.get("potential_allergen", False):
+        # strict_mode: 没有命中已知过敏原 + 用户也没有模糊提过敏 → safe
+        if strict_mode:
+            return make_suitable(
+                "过敏原检查",
+                f"{food_name}是潜在致敏食材，但宝宝无已知相关过敏，可谨慎引入"
+            )
         return RuleResult(
             tag="caution",
             reason=f"{food_name}是潜在致敏食材（过敏原类别：{food_allergen}），"

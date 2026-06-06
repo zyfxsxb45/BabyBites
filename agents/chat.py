@@ -54,6 +54,47 @@ class ChatAgent(LLMAgent):
             "查食材类别": lambda cat: self.kb.list_foods_by_category(cat) if self.kb else [],
         }
 
+    def extract_profile_insights(self, message: str, current_profile: dict = None) -> dict:
+        """
+        从用户的对话消息中提取可能影响 profile 的信息。
+        返回结构化的 profile 增量更新，供调用方合并。
+        """
+        if not self.llm:
+            return {}
+
+        known_allergens = ["鸡蛋", "牛奶", "花生", "鱼类", "虾", "大豆", "小麦", "坚果", "芝麻"]
+        prompt = f"""用户说："{message}"
+
+从用户的话中判断是否提到了以下信息。只返回 JSON：
+- new_allergies: 用户新提到的过敏原（从已知列表选：{', '.join(known_allergens)}）
+- new_tried_foods: 用户新提到的已尝试食材
+- age_update: 用户提到的月龄变化（数字）
+
+如果某项没有新信息，字段留空数组或 null。
+只返回 JSON，不要解释。"""
+        try:
+            result = self._ask_llm_structured(
+                system_prompt="你是结构化提取助手。只返回JSON。",
+                user_message=prompt,
+                output_schema={"new_allergies": [], "new_tried_foods": [], "age_update": None},
+                max_tokens=200,
+            )
+            insights = {}
+            if isinstance(result, dict):
+                if result.get("new_allergies"):
+                    insights["allergies"] = list(set(
+                        (current_profile or {}).get("allergies", []) + result["new_allergies"]
+                    ))
+                if result.get("new_tried_foods"):
+                    insights["tried_foods"] = list(set(
+                        (current_profile or {}).get("tried_foods", []) + result["new_tried_foods"]
+                    ))
+                if result.get("age_update"):
+                    insights["age_months"] = int(result["age_update"])
+            return insights
+        except Exception:
+            return {}
+
     def process(self, input_data: dict, **kwargs) -> dict:
         """
         处理用户问题。
@@ -66,7 +107,7 @@ class ChatAgent(LLMAgent):
         """
         message = input_data.get("message", "").strip()
         if not message:
-            return {"answer": "请告诉我你的问题。", "sources": []}
+            return {"answer": "请告诉我你的问题。", "sources": [], "profile_insights": {}}
 
         # 1. 检索知识库
         context, sources = self._retrieve_knowledge(message)
@@ -101,9 +142,13 @@ class ChatAgent(LLMAgent):
         if is_medical:
             answer += MEDICAL_DISCLAIMER
 
+        # 7. 提取 profile 增量信息
+        profile_insights = self.extract_profile_insights(message, input_data.get("current_profile"))
+
         return {
             "answer": answer,
             "sources": list(sources),
+            "profile_insights": profile_insights,
         }
 
     def _retrieve_knowledge(self, text: str) -> tuple[str, set[str]]:

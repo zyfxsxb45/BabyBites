@@ -71,6 +71,9 @@ class SafetyBoundaryAgent(RuleAgent):
         notes = profile.get("notes", "")
         signals = self._extract_readiness_signals(notes)
 
+        # 3.5. 全局月龄阻断：<6月龄的任何候选直接 avoid
+        global_age_block = effective_age < 6
+
         # 4. 候选食材安全标签（规则引擎）
         food_results = {}
         candidate_foods = input_data.get("candidate_foods", [])
@@ -78,8 +81,23 @@ class SafetyBoundaryAgent(RuleAgent):
             food_data = food.get("food_data", food)
             if not food_data:
                 continue
-            result = self.rule_engine.evaluate_food(food_data, profile, llm=self._llm)
-            food_id = food_data.get("id", food_data.get("name_zh", ""))
+
+            # 全局月龄阻断：未满6月龄，全部候选直接 avoid
+            if global_age_block:
+                name_zh = food_data.get("name_zh") or food_data.get("food_name_zh") or food_data.get("food_name") or str(food_data.get("id", ""))
+                food_results[name_zh] = {
+                    "tag": "avoid",
+                    "reasons": [f"宝宝矫正月龄仅 {effective_age} 个月，未满 6 个月，不应添加辅食"],
+                }
+                continue
+
+            # 尝试 KB 映射，失败则用外部字段包装
+            from kb.external_food import resolve_food
+            resolved = resolve_food(food_data, kb=self.kb)
+            if not resolved:
+                continue
+            result = self.rule_engine.evaluate_food(resolved, profile, llm=self._llm)
+            food_id = resolved.get("name_zh") or resolved.get("id", "")
             food_results[food_id] = {
                 "tag": result.overall_tag,
                 "reasons": result.reasons,
