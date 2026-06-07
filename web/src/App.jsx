@@ -293,6 +293,11 @@ function WeeklyPlan({ data, onRefresh }) {
   const [planStartedAt, setPlanStartedAt] = useState(() => {
     return localStorage.getItem("bb_plan_start") || null;
   });
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [planHistory, setPlanHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bb_plan_history") || "[]"); } catch { return []; }
+  });
+  const [showHistory, setShowHistory] = useState(false);
 
   // 记录计划开始日期 & 计算已执行天数
   useEffect(() => {
@@ -306,13 +311,50 @@ function WeeklyPlan({ data, onRefresh }) {
     }
   }, [data]);
 
+  // planHistory ref 避免 useEffect 闭包过期
+  const historyRef = useRef(planHistory);
+  historyRef.current = planHistory;
+
+  // 自动归档已过去的计划日（data 变化时 + 每30分钟定时检查）
+  const archivePastDays = () => {
+    if (!data?.plan?.length) return;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const pastDays = data.plan.filter((d) => d.date < todayISO);
+    if (pastDays.length === 0) return;
+
+    const existingDates = new Set(historyRef.current.map((h) => h.date));
+    const newHistory = pastDays
+      .filter((d) => !existingDates.has(d.date))
+      .map((d) => ({ date: d.date, day: d.day, foods: d.foods || [] }));
+
+    if (newHistory.length > 0) {
+      const merged = [...historyRef.current, ...newHistory].sort((a, b) => a.date.localeCompare(b.date));
+      setPlanHistory(merged);
+      localStorage.setItem("bb_plan_history", JSON.stringify(merged));
+    }
+  };
+
+  useEffect(() => { archivePastDays(); }, [data]);
+
+  // 定时检查（跨天自动归档，无需刷新页面）
+  useEffect(() => {
+    const timer = setInterval(archivePastDays, 30 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [data]);
+
   const today = new Date();
   const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
   const todayStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日 ${weekdays[today.getDay()]}`;
+  const todayISO = today.toISOString().slice(0, 10);
 
   const daysElapsed = planStartedAt
     ? Math.max(1, Math.ceil((today - new Date(planStartedAt)) / (1000 * 60 * 60 * 24)))
     : 0;
+
+  // 拆分：已过去的 vs 今天及未来的
+  const pastPlan = (data?.plan || []).filter((d) => d.date < todayISO);
+  const activePlan = (data?.plan || []).filter((d) => d.date >= todayISO);
+  const allPast = activePlan.length === 0;
 
   if (!data || !data.plan) {
     return (
@@ -326,7 +368,7 @@ function WeeklyPlan({ data, onRefresh }) {
     );
   }
 
-  const plan = data.plan || [];
+  const plan = activePlan;
   const newFoods = data.new_foods_this_week || [];
   const notes = data.nutrition_notes || [];
 
@@ -381,7 +423,12 @@ function WeeklyPlan({ data, onRefresh }) {
       })()}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "20px 0 16px" }}>
-        <h2 className="section-title" style={{ marginBottom: 0 }}>📅 7 日排菜</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className="section-title" style={{ marginBottom: 0 }}>📅 7 日排菜</h2>
+          <button className="history-entry-btn" onClick={() => setShowHistory(!showHistory)}>
+            📜 排菜历史{planHistory.length > 0 && <span className="history-badge">{planHistory.length}</span>}
+          </button>
+        </div>
         <button className="btn-primary" onClick={onRefresh} style={{ padding: "8px 20px", fontSize: 14 }}>🔄 刷新计划</button>
       </div>
 
@@ -394,8 +441,11 @@ function WeeklyPlan({ data, onRefresh }) {
       <div className="week-calendar">
         {plan.map((d) => {
           const isToday = d.date === today.toISOString().slice(0, 10);
+          const isExpanded = expandedDay === d.day;
           return (
-            <div key={d.day} className={`day-card ${d.is_new_food ? "new" : ""} ${isToday ? "today" : ""}`}>
+            <div key={d.day}
+              className={`day-card ${d.is_new_food ? "new" : ""} ${isToday ? "today" : ""} ${isExpanded ? "expanded" : ""}`}
+              onClick={() => setExpandedDay(isExpanded ? null : d.day)}>
               <div className="dn">
                 {d.day}{d.is_new_food ? " 🆕" : ""}
                 {isToday && <span className="today-badge">今天</span>}
@@ -403,10 +453,92 @@ function WeeklyPlan({ data, onRefresh }) {
               <div className="dd">{d.date?.slice(5)}</div>
               {(d.foods || []).map((f) => <div key={f} className="fi">{f}</div>)}
               {d.serving_note && <div className="sn">{d.serving_note}</div>}
+              <div className="dc">点击查看详情</div>
             </div>
           );
         })}
       </div>
+
+      {/* 展开的食材详情面板 */}
+      {expandedDay && (() => {
+        const dayData = plan.find((d) => d.day === expandedDay);
+        if (!dayData) return null;
+        const details = dayData.food_details || {};
+        return (
+          <div className="food-detail-panel" key={expandedDay}>
+            <div className="food-detail-header">
+              <b>📋 {expandedDay} 食材详情</b>
+              <button onClick={() => setExpandedDay(null)}>✕</button>
+            </div>
+            {Object.keys(details).length === 0 && (
+              <p style={{ color: "#999", textAlign: "center", padding: 16 }}>该日暂无食材详情</p>
+            )}
+            {Object.entries(details).map(([name, info]) => (
+              <div key={name} className="food-detail-item">
+                <div className="food-detail-name">{name}</div>
+                {info.texture && (
+                  <div className="food-detail-row">
+                    <span className="food-detail-label">质地</span>
+                    <span>{info.texture}</span>
+                  </div>
+                )}
+                {info.nutrients && (
+                  <div className="food-detail-row">
+                    <span className="food-detail-label">营养</span>
+                    <span style={{ fontSize: 12 }}>{info.nutrients}</span>
+                  </div>
+                )}
+                {info.notes && (
+                  <div className="food-detail-row">
+                    <span className="food-detail-label">做法与注意</span>
+                    <span style={{ fontSize: 12, lineHeight: 1.6 }}>{info.notes}</span>
+                  </div>
+                )}
+                {info.stage_note && (
+                  <div className="food-detail-row" style={{ background: "#fff8e1", borderRadius: 8 }}>
+                    <span className="food-detail-label">💡</span>
+                    <span style={{ fontSize: 12, color: "#e65100" }}>{info.stage_note}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* 历史记录 */}
+      {showHistory && (
+        <div className="fade-in" style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#8d6e63", marginBottom: 12 }}>
+            📜 排菜历史（{planHistory.length}天）
+          </div>
+          {planHistory.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", padding: 24, color: "#999" }}>
+              <p style={{ marginBottom: 4 }}>📭 暂无历史记录</p>
+              <p style={{ fontSize: 12 }}>每天过后，前一天的排菜会自动归档到这里</p>
+            </div>
+          ) : (
+            <div className="week-calendar">
+              {planHistory.slice().reverse().map((h) => (
+                <div key={h.date} className="day-card history">
+                  <div className="dn">{h.day}</div>
+                  <div className="dd">{h.date?.slice(5)}</div>
+                  {(h.foods || []).map((f) => <div key={f} className="fi">{f}</div>)}
+                  <div className="sn" style={{ color: "#4caf50" }}>✅ 已完成</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 本周已全部结束 */}
+      {allPast && (
+        <div className="card" style={{ marginTop: 16, textAlign: "center", background: "#fff3e0" }}>
+          <p style={{ color: "#e65100", marginBottom: 12 }}>📅 本周排菜已全部完成！</p>
+          <button className="btn-primary" onClick={onRefresh} style={{ padding: "8px 24px", fontSize: 14 }}>🔄 生成新一周计划</button>
+        </div>
+      )}
 
       {notes.length > 0 && (
         <div className="card" style={{ marginTop: 16 }}>
@@ -708,7 +840,7 @@ function DailyFeedback({ plan, onFeedbackSubmit }) {
 
   const [foodName, setFoodName] = useState("");
   const [reaction, setReaction] = useState("none");
-  const [severity, setSeverity] = useState("mild");
+  const [severity, setSeverity] = useState("moderate");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedbackHistory, setFeedbackHistory] = useState(null);
@@ -732,7 +864,7 @@ function DailyFeedback({ plan, onFeedbackSubmit }) {
       setMessage({ type: "success", text: `已记录「${foodName}」的反馈` });
       setFoodName("");
       setReaction("none");
-      setSeverity("mild");
+      setSeverity("moderate");
       setNotes("");
       const r = await api.feedback.get();
       setFeedbackHistory(r);

@@ -182,9 +182,9 @@ class PlanGenerationAgent(LLMAgent):
     def _generate_weekly_plan(
         self, foods: list, new_foods: list, profile: dict, stage: dict,
     ) -> list:
-        """生成7天逐日计划"""
+        """生成7天逐日计划——从今天开始，day name 对应当天实际星期"""
         meals_per_day = (stage or {}).get("meals_per_day", "2-3次")
-        start_date = self._next_monday()
+        start_date = self._start_date()
         new_food_names = {f.get("name_zh", "") for f in new_foods}
         age_months = profile.get("age_months", 6)
         day_names = ["周一","周二","周三","周四","周五","周六","周日"]
@@ -225,9 +225,10 @@ class PlanGenerationAgent(LLMAgent):
             # 新食材优先放前两天
             is_new = any(n in day_foods for n in new_food_names)
 
+            plan_date = start_date + timedelta(days=i)
             plan.append({
-                "day": day_names[i],
-                "date": (start_date + timedelta(days=i)).isoformat(),
+                "day": day_names[plan_date.weekday()],
+                "date": plan_date.isoformat(),
                 "foods": day_foods,
                 "is_new_food": is_new,
                 "serving_note": f"{meals_per_day}，从少量开始" + (
@@ -307,9 +308,6 @@ class PlanGenerationAgent(LLMAgent):
         return notes
 
     @staticmethod
-    def _next_monday() -> date:
-        today = date.today()
-        days_until_monday = (7 - today.weekday()) % 7
-        if days_until_monday == 0:
-            days_until_monday = 7
-        return today + timedelta(days=days_until_monday)
+    def _start_date() -> date:
+        """计划起始日期：从今天开始"""
+        return date.today()
