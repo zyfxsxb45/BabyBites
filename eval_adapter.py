@@ -168,7 +168,7 @@ def evaluate_candidates(
         "profile_summary": {
             "can_start": safety_result.get("can_start"),
             "effective_age": safety_result.get("effective_age_months"),
-            "stage": safety_result.get("stage", {}).get("label", ""),
+            "stage": (safety_result.get("stage") or {}).get("label", ""),
         },
     }
 
