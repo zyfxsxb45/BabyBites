@@ -240,10 +240,15 @@ class ChatAgent(LLMAgent):
         处理用户问题。
 
         Args:
-            input_data: {"message": str, "history": list[dict]}
+            input_data: {
+                "message": str,
+                "history": list[dict],
+                "candidates": list[dict] (可选, 候选食材列表, 传入后Chat会逐项覆盖),
+                "current_profile": dict (可选),
+            }
 
         Returns:
-            {"answer": str, "sources": list[str]}
+            {"answer": str, "sources": list[str], "profile_insights": dict}
         """
         message = input_data.get("message", "").strip()
         if not message:
@@ -279,6 +284,27 @@ class ChatAgent(LLMAgent):
                 for h in history[-5:]  # 只保留最近5轮
             )
             prompt += f"\n\n对话历史：\n{history_text}"
+
+        # 4.5. 候选食材注入：如果传入了候选列表，要求LLM逐项覆盖
+        candidates = input_data.get("candidates", [])
+        if candidates:
+            cand_lines = []
+            for c in candidates:
+                name = c.get("food_name_zh") or c.get("food_name") or ""
+                # 简短的食材元信息
+                flags = []
+                if c.get("contains_milk"): flags.append("含牛奶")
+                if c.get("contains_egg"): flags.append("含鸡蛋")
+                if c.get("contains_added_salt"): flags.append("高钠")
+                if c.get("contains_added_sugar"): flags.append("含添加糖")
+                if c.get("is_choking_risk_candidate"): flags.append("窒息风险")
+                flag_str = f"（{', '.join(flags)}）" if flags else ""
+                cand_lines.append(f"- {name}{flag_str}")
+            prompt += (
+                f"\n\n以下候选食材需要逐一分析：\n"
+                + "\n".join(cand_lines)
+                + "\n\n请在回答中逐项覆盖以上所有候选食材，给出个性化选择建议、风险提醒和理由。"
+            )
 
         # 5. 调用 LLM
         answer = self._ask_llm(system_prompt=prompt, user_message=message)

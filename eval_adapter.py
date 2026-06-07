@@ -212,10 +212,14 @@ def parse_label(ingredient_text: str, age_months: int = 6) -> dict[str, Any]:
     return _label.process({"ingredient_text": ingredient_text, "age_months": age_months})
 
 
-def chat(message: str, history: list[dict] | None = None) -> dict[str, Any]:
-    """智能问答"""
+def chat(message: str, history: list[dict] | None = None, candidates: list[dict] | None = None) -> dict[str, Any]:
+    """智能问答。candidates 非空时会逐项覆盖。"""
     _ensure_init()
-    return _chat.process({"message": message, "history": history or []})
+    return _chat.process({
+        "message": message,
+        "history": history or [],
+        "candidates": candidates or [],
+    })
 
 
 def _map_reasons_to_rule_ids(reasons: list[str]) -> list[str]:
