@@ -167,14 +167,14 @@ def generate_plan(req: PlanRequest):
     safe_foods = []
 
     if req.candidates:
-        # 评测/约束模式：只从给定候选池中选
+        # 评测/约束模式：只从给定候选池中选，只用 safe
         from kb.external_food import resolve_food
         for c in req.candidates:
             resolved = resolve_food(c, kb=kb)
             if not resolved:
                 continue
             result = engine.evaluate_food(resolved, profile)
-            if result.overall_tag != "avoid":
+            if result.overall_tag == "suitable":
                 safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
     else:
         # 正常模式：全量KB

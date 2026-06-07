@@ -192,7 +192,7 @@ def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | No
             if not resolved:
                 continue
             result = _engine.evaluate_food(resolved, profile)
-            if result.overall_tag != "avoid":
+            if result.overall_tag == "suitable":
                 safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
     else:
         all_foods = _kb.list_foods_by_age(profile.get("age_months", 6))
