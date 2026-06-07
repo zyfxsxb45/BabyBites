@@ -94,15 +94,16 @@ class UserProfileAgent(LLMAgent):
         profile["allergies"] = allergies or []
 
         # feeding_method: 标准化
-        fm = raw.get("feeding_method", "breast")
+        fm = raw.get("feeding_method")
         if fm in ("纯母乳", "母乳"):
             profile["feeding_method"] = "breast"
         elif fm in ("配方", "奶粉", "配方奶"):
             profile["feeding_method"] = "formula"
         elif fm in ("混合",):
             profile["feeding_method"] = "mixed"
-        else:
-            profile["feeding_method"] = fm or "breast"
+        elif fm:
+            profile["feeding_method"] = fm
+        # 没有提供喂养方式 → 不填，保持未知
 
         # tried_foods
         tried = raw.get("tried_foods", [])

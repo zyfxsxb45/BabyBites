@@ -35,6 +35,7 @@ class RuleEngine:
         baby_profile: dict,
         plan_date: Optional["date"] = None,
         llm=None,
+        strict_mode: bool = False,
     ) -> RuleOutput:
         """
         对单个食材执行全部单食材规则。
@@ -61,16 +62,27 @@ class RuleEngine:
             )
         )
 
-        # 1.5. 外部食材特有检查：窒息风险
+        # 1.5. 外部食材特有检查：窒息风险（按年龄分级）
         if food.get("_is_choking_risk"):
-            results.append(RuleResult(
-                tag="caution",
-                reason=f"{food.get('name_zh', '该食材')}存在窒息风险（整颗圆形硬质食物），"
-                       f"需切成小块或避免直接给整颗",
-                rule_name="窒息风险提示",
-                source="CDC窒息预防指南",
-                severity="warning",
-            ))
+            age = baby_profile.get("age_months", baby_profile.get("corrected_age_months", 6))
+            if age < 12:
+                results.append(RuleResult(
+                    tag="avoid",
+                    reason=f"{food.get('name_zh', '该食材')}是整颗圆形硬质食物，存在严重窒息风险，"
+                           f"12月龄以内婴儿严格禁止",
+                    rule_name="窒息风险拦截",
+                    source="CDC窒息预防指南 / AAP安全喂养建议",
+                    severity="error",
+                ))
+            else:
+                results.append(RuleResult(
+                    tag="caution",
+                    reason=f"{food.get('name_zh', '该食材')}存在窒息风险（整颗圆形硬质食物），"
+                           f"需切成小块或避免直接给整颗",
+                    rule_name="窒息风险提示",
+                    source="CDC窒息预防指南",
+                    severity="warning",
+                ))
 
         # 1.6. 外部食材特有检查：高钠
         sodium = food.get("_sodium_mg")
@@ -98,7 +110,7 @@ class RuleEngine:
         # 2. 月龄适龄
         results.append(
             check_age_appropriate(
-                food, baby_profile.get("age_months", 0), kb=self.kb,
+                food, baby_profile.get("age_months", 0), kb=self.kb, strict_mode=strict_mode,
             )
         )
 

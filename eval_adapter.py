@@ -151,6 +151,10 @@ def evaluate_candidates(
             "reasons": reasons,
         })
 
+        # 未知食材补充规则 ID
+        if decision == "insufficient_information":
+            items[-1]["triggered_rule_ids"].append("R_INSUFFICIENT_INGREDIENT_INFO")
+
     # 全局年龄阻断
     age = profile.get("corrected_age_months") or profile.get("age_months", 6)
     if age < 6:
@@ -231,9 +235,12 @@ def _map_reasons_to_rule_ids(reasons: list[str]) -> list[str]:
         ("盐", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
         ("添加糖", "R_ADDED_SUGAR_CAUTION"),
         ("窒息", "R_CHOKING_RISK_CAUTION"),
-        ("月龄", "R_AGE_UNDER_RECOMMENDED"),
         ("未满 6 个月", "R_AGE_BELOW_6M_NO_COMPLEMENTARY_FOOD"),
-        ("质地", "R_TEXTURE_MISMATCH_CAUTION"),
+        ("月龄", "R_AGE_UNDER_RECOMMENDED"),
+        ("质地", "R_TEXTURE_STAGE_MISMATCH"),
+        ("配料未知", "R_INSUFFICIENT_INGREDIENT_INFO"),
+        ("信息不足", "R_INSUFFICIENT_INGREDIENT_INFO"),
+        ("未收录", "R_INSUFFICIENT_INGREDIENT_INFO"),
     ]
     ids = []
     for reason in reasons:

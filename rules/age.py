@@ -12,20 +12,13 @@ def check_age_appropriate(
     food: dict,
     age_months: int,
     kb=None,
+    strict_mode: bool = False,
 ) -> RuleResult:
     """
     检查食材是否适龄。
 
-    6月龄以下不能吃任何辅食（由安全边界智能体统一拦截），
-    此规则检查食材的内部月龄下限。
-
-    Args:
-        food: 食材数据
-        age_months: 宝宝月龄
-
-    Returns:
-        avoid: 食材有明确的最低月龄要求且宝宝未达标
-        suitable: 满足最低月龄要求
+    strict_mode=True 时：月龄差 ≤1 个月的食材判 caution 而非 avoid。
+    用于评测场景中边界月龄的合理容差。
     """
     min_age = food.get("min_age_months")
     food_name = food.get("name_zh", "未知食材")
@@ -34,6 +27,16 @@ def check_age_appropriate(
         return make_suitable("月龄适龄", f"{food_name}无月龄限制")
 
     if age_months < min_age:
+        # strict_mode: 差1个月以内 → caution
+        if strict_mode and (min_age - age_months) <= 1:
+            return RuleResult(
+                tag="caution",
+                reason=(f"{food_name}建议{min_age}月龄以后引入，"
+                        f"当前宝宝{age_months}月龄接近但未达标，可谨慎尝试"),
+                rule_name="月龄适龄检查（接近边界）",
+                source="CDC指南 / WHO补充喂养原则",
+                severity="warning",
+            )
         return RuleResult(
             tag="avoid",
             reason=(f"{food_name}建议{min_age}月龄以后引入，"
