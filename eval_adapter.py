@@ -181,19 +181,19 @@ def extract_profile(user_input: str) -> dict[str, Any]:
 
 
 def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """生成周计划（可选限制候选池）"""
+    """生成周计划。candidates 非空时严格从候选池生成。"""
     _ensure_init()
     stage = _kb.get_age_stage(profile.get("age_months", 6))
 
-    # 构建安全食材池
     if candidates:
         safe_foods = []
         for c in candidates:
             resolved = resolve_food(c, kb=_kb)
-            if resolved:
-                result = _engine.evaluate_food(resolved, profile)
-                if result.overall_tag != "avoid":
-                    safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
+            if not resolved:
+                continue
+            result = _engine.evaluate_food(resolved, profile)
+            if result.overall_tag != "avoid":
+                safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
     else:
         all_foods = _kb.list_foods_by_age(profile.get("age_months", 6))
         safe_foods = [{"food_data": f, "tag": "suitable"} for f in all_foods]

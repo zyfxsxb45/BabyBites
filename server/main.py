@@ -69,6 +69,7 @@ class AssessRequest(BaseModel):
 
 class PlanRequest(BaseModel):
     profile: BabyProfile
+    candidates: Optional[list[dict]] = None  # 候选食材列表，不传则用全量KB
 
 
 class LabelRequest(BaseModel):
@@ -148,7 +149,7 @@ def assess(req: AssessRequest):
 
 @app.post("/api/plan")
 def generate_plan(req: PlanRequest):
-    """生成一周辅食计划"""
+    """生成一周辅食计划。candidates 非空时只从候选池生成，否则用全量KB。"""
     profile = req.profile.model_dump()
     stage = kb.get_age_stage(profile["age_months"])
 
@@ -163,13 +164,25 @@ def generate_plan(req: PlanRequest):
         if notes_avoid:
             profile["allergies"] = list(set(profile.get("allergies", [])) | notes_avoid)
 
-    # 安全食材池
-    all_foods = kb.list_foods_by_age(profile["age_months"])
     safe_foods = []
-    for f in all_foods:
-        result = engine.evaluate_food(f, profile)
-        if result.overall_tag != "avoid":
-            safe_foods.append({"food_data": f, "tag": result.overall_tag})
+
+    if req.candidates:
+        # 评测/约束模式：只从给定候选池中选
+        from kb.external_food import resolve_food
+        for c in req.candidates:
+            resolved = resolve_food(c, kb=kb)
+            if not resolved:
+                continue
+            result = engine.evaluate_food(resolved, profile)
+            if result.overall_tag != "avoid":
+                safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
+    else:
+        # 正常模式：全量KB
+        all_foods = kb.list_foods_by_age(profile["age_months"])
+        for f in all_foods:
+            result = engine.evaluate_food(f, profile)
+            if result.overall_tag != "avoid":
+                safe_foods.append({"food_data": f, "tag": result.overall_tag})
 
     # 应用反馈调整
     adjusted = get_feedback_adjusted_foods(safe_foods, feedback_store, kb=kb)
