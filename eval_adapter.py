@@ -219,9 +219,15 @@ def chat(message: str, history: list[dict] | None = None) -> dict[str, Any]:
 
 
 def _map_reasons_to_rule_ids(reasons: list[str]) -> list[str]:
-    """从中文原因文本映射到标准规则 ID"""
-    mapping = [
-        ("过敏", "R_ALLERGY_KNOWN"),
+    """从中文原因文本映射到标准规则 ID（精确匹配，避免子串误触发）"""
+    # 优先级顺序：更具体的模式在前
+    patterns = [
+        ("未满 6 个月", "R_AGE_BELOW_6M_NO_COMPLEMENTARY_FOOD"),
+        ("含添加盐", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
+        ("高钠", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
+        ("含添加糖", "R_ADDED_SUGAR_CAUTION"),
+        ("窒息", "R_CHOKING_RISK_CAUTION"),
+        ("已知过敏原", "R_ALLERGY_KNOWN"),
         ("牛奶", "R_ALLERGY_MILK"),
         ("鸡蛋", "R_ALLERGY_EGG"),
         ("小麦", "R_ALLERGY_WHEAT"),
@@ -231,20 +237,15 @@ def _map_reasons_to_rule_ids(reasons: list[str]) -> list[str]:
         ("鱼类", "R_ALLERGY_FISH"),
         ("虾", "R_ALLERGY_SHELLFISH"),
         ("芝麻", "R_ALLERGY_SESAME"),
-        ("高钠", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
-        ("盐", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
-        ("添加糖", "R_ADDED_SUGAR_CAUTION"),
-        ("窒息", "R_CHOKING_RISK_CAUTION"),
-        ("未满 6 个月", "R_AGE_BELOW_6M_NO_COMPLEMENTARY_FOOD"),
-        ("月龄", "R_AGE_UNDER_RECOMMENDED"),
-        ("质地", "R_TEXTURE_STAGE_MISMATCH"),
         ("配料未知", "R_INSUFFICIENT_INGREDIENT_INFO"),
         ("信息不足", "R_INSUFFICIENT_INGREDIENT_INFO"),
-        ("未收录", "R_INSUFFICIENT_INGREDIENT_INFO"),
+        ("质地", "R_TEXTURE_STAGE_MISMATCH"),
+        ("月龄", "R_AGE_UNDER_RECOMMENDED"),
     ]
     ids = []
     for reason in reasons:
-        for keyword, rule_id in mapping:
+        for keyword, rule_id in patterns:
             if keyword in reason:
                 ids.append(rule_id)
+                break  # 每个 reason 只匹配一个规则
     return ids

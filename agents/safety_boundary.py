@@ -60,6 +60,7 @@ class SafetyBoundaryAgent(RuleAgent):
         age_months = profile.get("age_months", 0)
         corrected = profile.get("corrected_age_months")
         effective_age = corrected if corrected is not None else age_months
+        strict_mode = kwargs.get("strict_mode", input_data.get("strict_mode", False))
 
         # 1. 阶段判断
         can_start, blocking = self._check_readiness(profile)
@@ -75,7 +76,8 @@ class SafetyBoundaryAgent(RuleAgent):
         global_age_block = effective_age < 6
 
         # 4. 候选食材安全标签（规则引擎）
-        food_results = {}
+        food_results = {}       # name_zh → {tag, reasons}
+        name_to_id = {}         # name_zh → food_id (统一两者映射)
         candidate_foods = input_data.get("candidate_foods", [])
         for food in candidate_foods:
             food_data = food.get("food_data", food)
@@ -89,6 +91,7 @@ class SafetyBoundaryAgent(RuleAgent):
                     "tag": "avoid",
                     "reasons": [f"宝宝矫正月龄仅 {effective_age} 个月，未满 6 个月，不应添加辅食"],
                 }
+                name_to_id[name_zh] = food_data.get("id", food_data.get("food_id", ""))
                 continue
 
             # 尝试 KB 映射，失败则用外部字段包装
@@ -96,39 +99,39 @@ class SafetyBoundaryAgent(RuleAgent):
             resolved = resolve_food(food_data, kb=self.kb)
             if not resolved:
                 continue
-            result = self.rule_engine.evaluate_food(resolved, profile, llm=self._llm)
-            food_id = resolved.get("name_zh") or resolved.get("id", "")
-            food_results[food_id] = {
+            result = self.rule_engine.evaluate_food(resolved, profile, llm=self._llm, strict_mode=strict_mode)
+            # 用 resolved 的 name_zh 作为 key，同时保留原始 ID
+            name_key = resolved.get("name_zh") or resolved.get("id", "")
+            food_results[name_key] = {
                 "tag": result.overall_tag,
                 "reasons": result.reasons,
             }
+            name_to_id[name_key] = food_data.get("id", food_data.get("food_id", ""))
 
-        # 5. 构建食物名→ID 映射（后续步骤共用）
-        food_name_to_ids = {}  # name_zh → [fid, ...]
+        # 5. 构建食物名→ID 映射（同时包含 candidate 和 resolved 名称）
         for item in candidate_foods:
             fd = item.get("food_data", item)
-            fid = fd.get("id", fd.get("name_zh", ""))
+            fid = fd.get("id", fd.get("food_id", ""))
             name = fd.get("name_zh", "")
             if name:
-                food_name_to_ids.setdefault(name, []).append(fid)
+                name_to_id.setdefault(name, fid)
             # 也收录别名
             aliases = fd.get("aliases", []) if isinstance(fd.get("aliases"), list) else []
             for alias in aliases:
-                food_name_to_ids.setdefault(alias, []).append(fid)
+                name_to_id.setdefault(alias, fid)
 
         # 6. 直接食材名匹配：过敏原列表可能直接包含食材名（如"山药"、"虾仁"）
         allergy_set = set(profile.get("allergies", []))
         direct_avoid_names = set()
-        for name in food_name_to_ids:
+        for name in list(food_results.keys()):
             if name in allergy_set:
                 direct_avoid_names.add(name)
-                for fid in food_name_to_ids[name]:
-                    fr = food_results.get(fid)
-                    if fr and fr["tag"] != "avoid":
-                        fr["tag"] = "avoid"
-                        fr["reasons"] = fr.get("reasons", []) + [
-                            f"家长标注「{name}」为过敏原，自动排除"
-                        ]
+                fr = food_results[name]
+                if fr["tag"] != "avoid":
+                    fr["tag"] = "avoid"
+                    fr["reasons"] = fr.get("reasons", []) + [
+                        f"家长标注「{name}」为过敏原，自动排除"
+                    ]
 
         # 7. 从备注中提取过敏/不耐受食材（LLM + 规则 fallback）
         notes_avoid_names = set()
@@ -145,11 +148,12 @@ class SafetyBoundaryAgent(RuleAgent):
         )
         notes_avoid_names.update(keyword_avoid)
 
-        # 应用备注提取的避免食材
+        # 应用备注提取的避免食材（用 name_to_id 映射查找）
         for name in notes_avoid_names:
-            for fid in food_name_to_ids.get(name, []):
-                fr = food_results.get(fid)
-                if fr and fr["tag"] != "avoid":
+            # 直接在 food_results 中查找
+            if name in food_results:
+                fr = food_results[name]
+                if fr["tag"] != "avoid":
                     fr["tag"] = "avoid"
                     fr["reasons"] = fr.get("reasons", []) + [
                         f"家长备注中提到宝宝对「{name}」过敏或不耐受，自动排除"
