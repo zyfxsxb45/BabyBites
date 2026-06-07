@@ -438,25 +438,34 @@ function WeeklyPlan({ data, onRefresh }) {
         </div>
       )}
 
-      <div className="week-calendar">
-        {plan.map((d) => {
-          const isToday = d.date === today.toISOString().slice(0, 10);
-          const isExpanded = expandedDay === d.day;
-          return (
-            <div key={d.day}
-              className={`day-card ${d.is_new_food ? "new" : ""} ${isToday ? "today" : ""} ${isExpanded ? "expanded" : ""}`}
-              onClick={() => setExpandedDay(isExpanded ? null : d.day)}>
-              <div className="dn">
-                {d.day}{d.is_new_food ? " 🆕" : ""}
-                {isToday && <span className="today-badge">今天</span>}
-              </div>
-              <div className="dd">{d.date?.slice(5)}</div>
-              {(d.foods || []).map((f) => <div key={f} className="fi">{f}</div>)}
-              {d.serving_note && <div className="sn">{d.serving_note}</div>}
-              <div className="dc">点击查看详情</div>
-            </div>
-          );
-        })}
+      <div className="bus-wrapper">
+        <div className="bus-sign">🚌 宝宝巴适 · 辅食排菜</div>
+        <div className="bus-body">
+          <div className="bus-windows">
+            {plan.map((d) => {
+              const isToday = d.date === today.toISOString().slice(0, 10);
+              const isExpanded = expandedDay === d.day;
+              return (
+                <div key={d.day}
+                  className={`bus-window ${d.is_new_food ? "new" : ""} ${isToday ? "today" : ""} ${isExpanded ? "expanded" : ""}`}
+                  onClick={() => setExpandedDay(isExpanded ? null : d.day)}>
+                  <div className="bw-day">
+                    {d.day}{d.is_new_food ? " 🆕" : ""}
+                    {isToday && <span className="today-badge">今天</span>}
+                  </div>
+                  <div className="bw-date">{d.date?.slice(5)}</div>
+                  {(d.foods || []).map((f) => <div key={f} className="bw-food">{f}</div>)}
+                  {d.serving_note && <div className="bw-note">{d.serving_note}</div>}
+                  <div className="bw-hint">点击查看详情</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="bus-wheels">
+          <div className="bus-wheel"><div className="bus-wheel-hub" /></div>
+          <div className="bus-wheel"><div className="bus-wheel-hub" /></div>
+        </div>
       </div>
 
       {/* 展开的食材详情面板 */}

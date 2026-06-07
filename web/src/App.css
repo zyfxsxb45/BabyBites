@@ -137,23 +137,131 @@ body {
 .metric-card.r .val { color: var(--red); }
 .metric-card.o .val { color: var(--orange); }
 
-/* ===== 周历卡片优化 ===== */
+/* ===== 校园巴士排菜表 ===== */
+.bus-wrapper {
+  position: relative;
+  background: linear-gradient(180deg, #FFDF73 0%, #FFD54F 40%, #FFCA28 100%);
+  border-radius: 30px 20px 10px 10px;
+  padding: 36px 18px 40px;
+  margin: 24px 0 30px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.10);
+  border-bottom: 8px solid #4A4A4A;
+  /* 需要给轮子留空间 */
+}
+/* 路线牌 */
+.bus-sign {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #333, #1a1a1a);
+  color: #FFD54F; font-size: 14px; font-weight: 800;
+  padding: 5px 24px; border-radius: 20px;
+  white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  letter-spacing: 1px; border: 2px solid #555;
+}
+
+/* 车窗网格 */
+.bus-windows { display: grid; grid-template-columns: repeat(7,1fr); gap: 10px; }
+
+/* 每扇车窗 */
+.bus-window {
+  background: #fff; border-radius: 12px 12px 8px 8px;
+  padding: 12px 5px; text-align: center; cursor: pointer;
+  min-height: 90px; border: 2px solid #d5d5d5;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.04), 0 2px 6px rgba(0,0,0,0.06);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+  position: relative;
+}
+.bus-window::after {
+  content: ""; position: absolute; top: 3px; left: 6px; right: 6px;
+  height: 18px; background: linear-gradient(180deg, rgba(255,255,255,.5), transparent);
+  border-radius: 6px 6px 0 0; pointer-events: none;
+}
+.bus-window:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); border-color: #bbb; }
+.bus-window.expanded {
+  border-color: #ff9800;
+  box-shadow: 0 0 0 3px rgba(255,152,0,.3), 0 4px 16px rgba(0,0,0,.10);
+}
+.bus-window .bw-day { font-weight: 700; font-size: 13px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap; }
+.bus-window .bw-date { font-size: 10px; color: #bbb; margin-bottom: 4px; }
+.bus-window .bw-food { background: #fef5e7; border-radius: 6px; padding: 2px 6px; font-size: 12px; margin: 2px 0; }
+.bus-window .bw-note { font-size: 10px; color: #999; margin-top: 5px; line-height: 1.4; }
+.bus-window .bw-hint { font-size: 9px; color: #ccc; margin-top: 4px; transition: color .2s; }
+.bus-window:hover .bw-hint { color: #aaa; }
+.bus-window.expanded .bw-hint { color: #ff9800; }
+/* 新食材车窗 */
+.bus-window.new { background: linear-gradient(180deg, #fff8e1, #fffef5 50%, #fff); border-color: #ffcc80; }
+/* 今日车窗 */
+.bus-window.today { border-color: #4caf50; box-shadow: 0 0 0 3px rgba(76,175,80,.25), 0 2px 10px rgba(0,0,0,.06); }
+.bus-window.today.new { border-color: #ff9800; }
+
+/* ===== 车轮 ===== */
+.bus-wheels {
+  position: absolute; bottom: -22px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 8%; pointer-events: none; z-index: 1;
+}
+.bus-wheel {
+  width: 44px; height: 44px;
+  background: radial-gradient(circle at 50% 50%, #5a5a5a 55%, #3a3a3a 100%);
+  border-radius: 50%; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,.35),
+    inset 0 2px 4px rgba(255,255,255,.1),
+    inset 0 -2px 4px rgba(0,0,0,.3);
+  border: 4px solid #2a2a2a;
+}
+/* 轮毂 */
+.bus-wheel-hub {
+  width: 16px; height: 16px;
+  background: radial-gradient(circle at 40% 40%, #e0e0e0, #b0b0b0);
+  border-radius: 50%;
+  border: 2px solid #888;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+
+/* ===== 车灯（伪元素）===== */
+/* 左尾灯（红色）*/
+.bus-wrapper::before {
+  content: ""; position: absolute;
+  bottom: -2px; left: 6px;
+  width: 14px; height: 8px;
+  background: #d32f2f;
+  border-radius: 2px 6px 2px 2px;
+  box-shadow: 0 0 6px rgba(211,47,47,.6);
+  z-index: 3;
+}
+/* 右前照灯（黄色）*/
+.bus-wrapper::after {
+  content: ""; position: absolute;
+  bottom: -2px; right: 6px;
+  width: 18px; height: 8px;
+  background: #FFD54F;
+  border-radius: 6px 2px 2px 2px;
+  box-shadow: 0 0 10px rgba(255,213,79,.7);
+  z-index: 3;
+}
+
+.today-badge {
+  font-size: 9px; background: #4caf50; color: #fff;
+  padding: 1px 5px; border-radius: 6px; font-weight: 600;
+}
+
+/* 历史面板兼容旧样式 */
 .week-calendar { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; }
 .day-card {
   background: #fff; border-radius: 12px; padding: 10px 6px;
   text-align: center; box-shadow: var(--shadow); min-height: 90px;
   border-top: 3px solid #e8d5c8;
-  transition: transform .2s, box-shadow .2s;
-  cursor: pointer;
+  transition: transform .2s, box-shadow .2s; cursor: pointer;
 }
 .day-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-.day-card.expanded { border-top: 3px solid #ff9800; box-shadow: 0 0 0 2px rgba(255,152,0,.3), 0 4px 16px rgba(0,0,0,.12); }
-.day-card .dc { font-size: 10px; color: #ccc; margin-top: 6px; transition: color .2s; }
-.day-card:hover .dc { color: #aaa; }
-.day-card.expanded .dc { color: #ff9800; }
+.day-card .dn { font-weight: 700; font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.day-card .dd { font-size: 10px; color: #bbb; margin-bottom: 4px; }
+.day-card .fi { background: #fef5e7; border-radius: 8px; padding: 2px 6px; font-size: 13px; margin: 2px 0; }
+.day-card .sn { font-size: 10px; color: #999; margin-top: 6px; line-height: 1.4; }
 .day-card.history { opacity: 0.75; border-top: 3px solid #c8e6c9; background: #fafff8; cursor: default; }
 .day-card.history:hover { transform: none; box-shadow: var(--shadow); }
-.history-toggle:hover { opacity: 0.7; }
+
 .history-entry-btn {
   background: none; border: 1.5px solid #e8d5c8; border-radius: 20px;
   padding: 4px 14px; font-size: 13px; color: #8d6e63; cursor: pointer;
@@ -163,27 +271,6 @@ body {
 .history-badge {
   background: var(--orange); color: #fff; font-size: 10px; font-weight: 700;
   min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
-}
-.day-card.new {
-  background: linear-gradient(180deg, #fff8e1, #fff);
-  border-top: 3px solid #ff9800;
-  box-shadow: 0 2px 14px rgba(255,152,0,0.12);
-}
-.day-card.new:hover { box-shadow: 0 6px 22px rgba(255,152,0,0.2); }
-.day-card.today {
-  border-top: 3px solid #4caf50;
-  box-shadow: 0 0 0 2px rgba(76,175,80,.25), 0 2px 14px rgba(0,0,0,.08);
-  position: relative;
-}
-.day-card.today.new { border-top: 3px solid #ff9800; }
-.day-card .dn { font-weight: 700; font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
-.day-card .dd { font-size: 10px; color: #bbb; margin-bottom: 4px; }
-.day-card .fi { background: #fef5e7; border-radius: 8px; padding: 2px 6px; font-size: 13px; margin: 2px 0; }
-.day-card .sn { font-size: 10px; color: #999; margin-top: 6px; line-height: 1.4; }
-.day-card .tag { margin-top: 2px; }
-.today-badge {
-  font-size: 10px; background: #4caf50; color: #fff;
-  padding: 1px 6px; border-radius: 8px; font-weight: 600;
 }
 
 /* ===== 食材详情展开面板 ===== */
@@ -326,6 +413,12 @@ body {
   .sidebar { height: auto; position: static; border-right: none; border-bottom: 1px solid #f0e8df; }
   .main-content { padding: 16px; }
   .metrics-row { grid-template-columns: repeat(2,1fr); }
+  .bus-windows { grid-template-columns: repeat(4,1fr); gap: 6px; }
+  .bus-sign { font-size: 11px; padding: 4px 14px; }
+  .bus-wrapper { padding: 30px 8px 36px; border-radius: 24px 16px 8px 8px; }
+  .bus-window { min-height: 72px; padding: 8px 3px; }
+  .bus-wheels { padding: 0 5%; }
+  .bus-wheel { width: 36px; height: 36px; }
   .week-calendar { grid-template-columns: repeat(4,1fr); }
   .chat-overlay { width: calc(100vw - 16px); right: 8px; }
   .bb-float { bottom: 16px; right: 16px; }
