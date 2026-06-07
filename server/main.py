@@ -194,11 +194,19 @@ def generate_plan(req: PlanRequest):
         "stage": stage,
     })
 
+    # 二次校验：规则引擎重新验证计划
+    from agents.validation import ValidationAgent
+    validator = ValidationAgent(kb=kb, rule_engine=engine)
+    validation = validator.process({"plan": result["plan"], "profile": profile})
+
     return {
         "plan": result["plan"],
         "new_foods_this_week": result["new_foods_this_week"],
         "stage_label": result["stage_label"],
         "nutrition_notes": result["nutrition_notes"],
+        "validated": validation["passed"],
+        "validation_warnings": validation.get("warnings", []),
+        "validation_violations": validation.get("violations", []),
     }
 
 
