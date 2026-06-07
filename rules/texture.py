@@ -1,6 +1,51 @@
-"""质地匹配规则。"""
+"""质地匹配规则。
+
+统一 canonical 三级质地：puree(0) < minced(1) < chunky(2)
+所有中英文值归一化到这三层后，再与阶段期望比较。
+更细腻可以通过，更粗糙需要 caution。
+"""
 
 from .base import RuleResult, make_suitable
+
+# ===== 统一 canonical 质地映射 =====
+# puree(0): 泥糊状、液体、糊状、酸奶状
+CANONICAL_PUREE = {
+    "泥糊状", "puree", "mashed", "soft", "liquid",
+    "smooth_mixed",
+}
+# minced(1): 碎末状、指状食物、软颗粒
+CANONICAL_MINCED = {
+    "碎末状", "指状食物", "minced", "soft_lumps",
+    "finger_food",
+}
+# chunky(2): 小块、家庭饮食、硬圆形
+CANONICAL_CHUNKY = {
+    "小块/家庭饮食", "chunky", "hard_round",
+}
+
+CANONICAL_LEVEL = {"puree": 0, "minced": 1, "chunky": 2}
+
+CANONICAL_ZH = {"puree": "泥糊状", "minced": "碎末状", "chunky": "小块/家庭饮食"}
+
+
+def _to_canonical(texture: str) -> tuple[str, int]:
+    """将任意中英文纹理归一化为 canonical (name, level)"""
+    if texture in CANONICAL_PUREE:
+        return ("puree", 0)
+    if texture in CANONICAL_MINCED:
+        return ("minced", 1)
+    if texture in CANONICAL_CHUNKY:
+        return ("chunky", 2)
+    return ("unknown", -1)
+
+
+def _extract_stage_level(texture_str: str) -> int:
+    """从阶段纹理字符串中提取 canonical level。
+    如 '碎末状 / 指状食物' → 取第一部分 '碎末状' → minced(1)
+    """
+    first = texture_str.split("/")[0].strip()
+    _, level = _to_canonical(first)
+    return level
 
 
 def check_texture_match(food: dict, age_months: int, kb=None) -> RuleResult:
@@ -17,72 +62,49 @@ def check_texture_match(food: dict, age_months: int, kb=None) -> RuleResult:
 
     expected = stage.get("texture", "")
 
-    # 英文 → 中文纹理映射
-    TEXTURE_EN_TO_ZH = {
-        "puree": "泥糊状",
-        "mashed": "碎末状",
-        "soft": "软烂",
-        "finger_food": "手指食物",
-        "liquid": "液体",
-        "hard_round": "硬圆形",
-        "unknown": "未知",
-        "smooth_mixed": "泥糊状",
-        "soft_lumps": "碎末状",
-    }
-    food_texture_zh = TEXTURE_EN_TO_ZH.get(food_texture, food_texture)
+    # 归一化食材纹理
+    canonical_name, food_level = _to_canonical(food_texture)
+    expected_level = _extract_stage_level(expected)
+    canonical_zh = CANONICAL_ZH.get(canonical_name, food_texture)
 
-    # 中文 → 难度等级映射
-    TEXTURE_LEVEL = {
-        "泥糊状": 0, "液体": 0, "软烂": 1, "碎末状": 1,
-        "手指食物": 2, "小块/家庭饮食": 3, "硬圆形": 3, "未知": -1,
-    }
-    expected_level = TEXTURE_LEVEL.get(
-        _pick_first_texture(expected), -1
-    )
-    food_level = TEXTURE_LEVEL.get(food_texture_zh, 99)
-
-    # 未知纹理 → 放行（可能是外部食材，纹理不明确不应作为硬阻）
-    if food_texture == "unknown" or food_texture_zh == "未知":
+    # 未知纹理 → 不触发规则（信息不足，不应误判）
+    if canonical_name == "unknown":
         return make_suitable(
             "质地匹配",
             f"{food_name}纹理未知，不做质地限制"
         )
 
-    # 硬圆形 / 整颗食物 → 特殊警告
+    # 硬圆形特殊处理：低于12月龄 → avoid
     if food_texture == "hard_round":
         if age_months < 12:
             return RuleResult(
                 tag="avoid",
-                reason=f"{food_name}在咀嚼期(9-11月龄)阶段禁止食用。",
+                reason=f"{food_name}是整颗硬质食物，存在严重窒息风险，12月龄以内禁止食用。",
                 rule_name="质地检查",
                 source="CDC窒息预防指南",
                 severity="error",
             )
         return RuleResult(
             tag="caution",
-            reason=f"{food_name}的质地({food_texture_zh})可能需要切碎处理以适合{expected}阶段",
+            reason=f"{food_name}的质地({canonical_zh})需要切成小块以适合{expected}阶段",
             rule_name="质地检查",
             severity="warning",
         )
 
-    # 匹配：允许降级（更细腻可以），不允许升级
+    # 阶段纹理未知 → 放行
     if expected_level < 0:
         return make_suitable("质地匹配")
+
+    # 比较：更细腻可以通过，更粗糙需要 caution
     if food_level <= expected_level:
         return make_suitable(
             "质地匹配",
-            f"{food_name}质地({food_texture_zh})适合{expected}阶段"
+            f"{food_name}的质地({canonical_zh})适合{expected}阶段"
         )
 
     return RuleResult(
         tag="caution",
-        reason=f"{food_name}的质地({food_texture_zh})可能需要进一步处理"
-               f"以适合{expected}阶段",
+        reason=f"{food_name}的质地({canonical_zh})需要进一步处理以适合{expected}阶段",
         rule_name="质地检查",
         severity="warning",
     )
-
-
-def _pick_first_texture(texture_str: str) -> str:
-    """从阶段纹理字符串中取第一个（如 '碎末状 / 指状食物' → '碎末状'）"""
-    return texture_str.split("/")[0].strip()
