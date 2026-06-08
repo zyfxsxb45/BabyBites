@@ -174,6 +174,12 @@ class SafetyBoundaryAgent(RuleAgent):
             "food_safety_results": food_results,
             "notes_avoid_foods": list(all_avoid_names),  # 包含直接匹配+备注提取
             "direct_avoid_foods": list(direct_avoid_names),  # 直接过敏原匹配
+            "other_restrictions": profile.get("other_restrictions"),
+            "llm_advisory_context": (
+                f"家长其他过敏/忌口原文：{profile.get('other_restrictions')}。"
+                "该内容未经标准过敏原匹配，不用于确定性安全标签。"
+                if profile.get("other_restrictions") else ""
+            ),
             "recommendation": self._generate_recommendation(
                 can_start, effective_age, stage, signals, blocking
             ),

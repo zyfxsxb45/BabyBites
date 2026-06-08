@@ -100,6 +100,7 @@ class PlanGenerationAgent(LLMAgent):
         budget = profile.get("budget") or profile.get("budget_level") or "未指定"
         prefer_homemade = profile.get("prefer_homemade")
         avoid_categories = profile.get("avoid_categories", [])
+        other_restrictions = profile.get("other_restrictions") or "无"
 
         # 构建食材清单
         food_lines = []
@@ -122,6 +123,7 @@ class PlanGenerationAgent(LLMAgent):
 - 预算：{budget}
 - 偏好自制：{prefer_homemade if prefer_homemade is not None else '未指定'}
 - 希望避免类别：{', '.join(avoid_categories) if avoid_categories else '无'}
+- 家长其他过敏/忌口原文：{other_restrictions}（未经标准过敏原匹配，作为偏好或待确认信息谨慎考虑）
 - 阶段：{stage.get('label', '')}（{stage.get('texture', '')}）
 
 安全食材池（只能从这里选，不能加入其他食材）：

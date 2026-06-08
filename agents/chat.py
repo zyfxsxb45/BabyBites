@@ -275,6 +275,17 @@ class ChatAgent(LLMAgent):
 
         # 3. 拼装 prompt
         prompt = SYSTEM_PROMPT.format(context=context or "暂无直接相关的知识库条目。")
+        current_profile = input_data.get("current_profile") or {}
+        if current_profile:
+            prompt += (
+                "\n\n当前宝宝画像（用于个性化回答；其中“其他过敏/忌口原文”"
+                "未经标准过敏原匹配，只能作为家长偏好或待确认信息处理）：\n"
+                f"- 月龄：{current_profile.get('age_months', '未提供')}\n"
+                f"- 已知过敏原：{', '.join(current_profile.get('allergies', [])) or '无'}\n"
+                f"- 其他过敏/忌口原文：{current_profile.get('other_restrictions') or '无'}\n"
+                f"- 已尝试食材：{', '.join(current_profile.get('tried_foods', [])) or '无'}\n"
+                f"- 备注：{current_profile.get('notes') or '无'}"
+            )
 
         # 4. 如果有对话历史，拼接
         history = input_data.get("history", [])

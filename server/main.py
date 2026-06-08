@@ -57,6 +57,7 @@ class BabyProfile(BaseModel):
     age_months: int = 6
     corrected_age_months: Optional[int] = None
     allergies: list[str] = []
+    other_restrictions: Optional[str] = None
     feeding_method: str = "breast"
     tried_foods: list[str] = []
     notes: str = ""
@@ -148,6 +149,8 @@ def assess(req: AssessRequest):
         "food_tags": food_tags,
         "notes_avoid_foods": result.get("notes_avoid_foods", []),
         "direct_avoid_foods": result.get("direct_avoid_foods", []),
+        "other_restrictions": result.get("other_restrictions"),
+        "llm_advisory_context": result.get("llm_advisory_context", ""),
     }
 
 

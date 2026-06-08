@@ -10,6 +10,7 @@ Boss Baby 悬浮球 + 智能问答浮窗组件。
 
 import streamlit as st
 from agents.chat import ChatAgent
+from ui.pages.chat import _agent_history
 
 
 # ================================================================
@@ -268,8 +269,8 @@ def render_chat_float(chat_agent: ChatAgent, kb=None):
     # ---- session state ----
     if "show_chat_float" not in st.session_state:
         st.session_state.show_chat_float = False
-    if "chat_float_msgs" not in st.session_state:
-        st.session_state.chat_float_msgs = []
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
     # ---- 检测 <a> 标签点击（通过 query_params）----
     if st.query_params.get("chat") == "open":
@@ -286,61 +287,66 @@ def render_chat_float(chat_agent: ChatAgent, kb=None):
         _render_chat_panel(chat_agent, kb)
 
 
+@st.dialog("👶 宝宝巴适 · 智能问答", width="large")
 def _render_chat_panel(chat_agent: ChatAgent, kb=None):
-    st.markdown(
-        '<div class="bb-panel">'
-        '<div class="bb-panel-hdr"><span>👶 宝宝巴适 · 智能问答</span></div>'
-        '<div class="bb-panel-body">',
-        unsafe_allow_html=True,
-    )
-
-    if st.button("✕ 关闭", key="cf_close"):
+    close_col, clear_col = st.columns(2)
+    if close_col.button("关闭", key="cf_close", use_container_width=True):
         st.session_state.show_chat_float = False
         st.rerun()
+    if clear_col.button("清除对话", key="cf_clear", use_container_width=True):
+        st.session_state.chat_history = []
+        st.rerun()
 
-    st.caption("关于辅食、营养、过敏的问题，随时问我~")
+    st.caption("结合当前宝宝画像、知识库和安全规则回答辅食问题。")
 
+    questions = [
+        "6月龄宝宝可以吃哪些食物？",
+        "猪肝含铁量多少？",
+        "鸡蛋过敏要注意什么？",
+        "辅食应该怎么循序渐进？",
+    ]
+    clicked = None
     with st.expander("💡 快捷提问"):
-        qs = [
-            "6月龄宝宝可以吃哪些食物？",
-            "猪肝含铁量多少？",
-            "鸡蛋过敏要注意什么？",
-            "辅食应该怎么循序渐进？",
-        ]
-        for i, q in enumerate(qs):
-            if st.button(q, key=f"cf_q_{i}"):
-                st.session_state._cf_input = q
-                st.rerun()
+        cols = st.columns(2)
+        for i, question in enumerate(questions):
+            with cols[i % 2]:
+                if st.button(question, key=f"cf_q_{i}", use_container_width=True):
+                    clicked = question
 
-    for msg in st.session_state.chat_float_msgs:
+    if not st.session_state.chat_history:
+        st.info("输入问题后，回答会显示在这里。")
+    for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+            if msg.get("sources"):
+                with st.expander("📚 信息来源"):
+                    for source in msg["sources"]:
+                        st.caption(f"· {source}")
 
-    user_input = st.chat_input("关于宝宝辅食，随时问我...", key="cf_input")
-    if st.session_state.get("_cf_input"):
-        user_input = st.session_state._cf_input
-        st.session_state._cf_input = None
+    with st.form("chat_float_form", clear_on_submit=True):
+        typed_input = st.text_input(
+            "输入问题",
+            placeholder="例如：宝宝对鸡蛋过敏，可以吃什么替代？",
+            key="cf_input",
+        )
+        send_clicked = st.form_submit_button("发送", type="primary", use_container_width=True)
+    user_input = clicked or (typed_input.strip() if send_clicked else None)
 
     if user_input:
-        st.session_state.chat_float_msgs.append({"role": "user", "content": user_input})
         with st.spinner("宝宝在思考中..."):
             result = chat_agent.process({
                 "message": user_input,
-                "history": [
-                    {"question": m["content"], "answer": m.get("answer", "")}
-                    for m in st.session_state.chat_float_msgs
-                    if m["role"] == "assistant"
-                ],
+                "history": _agent_history(st.session_state.chat_history),
+                "current_profile": st.session_state.get("baby_profile", {}),
             })
         answer = result.get("answer") or "抱歉，我暂时无法回答这个问题。"
-        st.session_state.chat_float_msgs.append({
-            "role": "assistant", "content": answer, "answer": answer,
-        })
+        st.session_state.chat_history.extend([
+            {"role": "user", "content": user_input},
+            {
+                "role": "assistant",
+                "content": answer,
+                "answer": answer,
+                "sources": result.get("sources", []),
+            },
+        ])
         st.rerun()
-
-    if st.session_state.chat_float_msgs:
-        if st.button("🗑️ 清除对话", key="cf_clear"):
-            st.session_state.chat_float_msgs = []
-            st.rerun()
-
-    st.markdown("</div></div>", unsafe_allow_html=True)

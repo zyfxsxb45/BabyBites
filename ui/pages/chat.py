@@ -7,6 +7,21 @@ Chat 智能问答页面。
 import streamlit as st
 
 
+def _agent_history(messages):
+    history = []
+    pending_question = None
+    for message in messages:
+        if message.get("role") == "user":
+            pending_question = message.get("content", "")
+        elif message.get("role") == "assistant" and pending_question:
+            history.append({
+                "question": pending_question,
+                "answer": message.get("content", ""),
+            })
+            pending_question = None
+    return history[-5:]
+
+
 def render_chat_page(chat_agent, kb=None):
     """
     渲染 Chat 问答页面。
@@ -16,58 +31,55 @@ def render_chat_page(chat_agent, kb=None):
         kb: 知识库实例（用于查询）
     """
     st.subheader("💬 智能问答")
+    st.caption("结合当前宝宝画像、知识库和安全规则回答辅食问题。")
 
-    # 快捷提问按钮
-    st.caption("快捷提问：")
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
     quick_questions = [
         "6月龄宝宝可以吃哪些食物？",
         "猪肝含铁量多少？什么时候可以吃？",
         "鸡蛋过敏有什么要注意的？",
         "辅食应该怎么循序渐进？",
     ]
-    cols = st.columns(4)
     clicked = None
-    for i, q in enumerate(quick_questions):
-        with cols[i]:
-            if st.button(q, key=f"quick_{i}", use_container_width=True):
-                clicked = q
+    with st.container(border=True):
+        st.caption("快捷提问")
+        cols = st.columns(2)
+        for i, question in enumerate(quick_questions):
+            with cols[i % 2]:
+                if st.button(question, key=f"quick_{i}", use_container_width=True):
+                    clicked = question
 
-    st.divider()
+        st.divider()
+        if not st.session_state.chat_history:
+            st.info("输入问题后，回答会显示在这里。")
+        for msg in st.session_state.chat_history:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if msg.get("sources"):
+                    with st.expander("📚 信息来源"):
+                        for source in msg["sources"]:
+                            st.caption(f"· {source}")
 
-    # 初始化会话历史
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    # 显示对话历史
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg.get("sources"):
-                with st.expander("📚 信息来源"):
-                    for s in msg["sources"]:
-                        st.caption(f"· {s}")
-
-    # 输入框
-    user_input = st.chat_input("关于宝宝辅食的问题，随时问我...")
-
-    # 处理快捷提问
-    if clicked:
-        user_input = clicked
+        with st.form("chat_page_form", clear_on_submit=True):
+            typed_input = st.text_input(
+                "输入问题",
+                placeholder="例如：8月龄宝宝第一次吃鸡蛋应该注意什么？",
+                key="chat_page_input",
+            )
+            send_clicked = st.form_submit_button(
+                "发送",
+                type="primary",
+                use_container_width=True,
+            )
+        user_input = clicked or (typed_input.strip() if send_clicked else None)
 
     if user_input:
-        # 显示用户消息
-        with st.chat_message("user"):
-            st.markdown(user_input)
-
-        # 调用 Chat Agent
         with st.spinner("思考中..."):
             result = chat_agent.process({
                 "message": user_input,
-                "history": [
-                    {"question": h["content"], "answer": h.get("answer", "")}
-                    for h in st.session_state.chat_history
-                    if h["role"] == "assistant"
-                ],
+                "history": _agent_history(st.session_state.chat_history),
                 "current_profile": st.session_state.get("baby_profile", {}),
             })
 
@@ -92,15 +104,6 @@ def render_chat_page(chat_agent, kb=None):
             if changed:
                 st.caption(f"💡 已自动更新宝宝信息：{' · '.join(changed)}")
 
-        # 显示助手回答
-        with st.chat_message("assistant"):
-            st.markdown(answer)
-            if sources:
-                with st.expander("📚 信息来源"):
-                    for s in sources:
-                        st.caption(f"· {s}")
-
-        # 保存历史
         st.session_state.chat_history.append({
             "role": "user",
             "content": user_input,
@@ -111,10 +114,9 @@ def render_chat_page(chat_agent, kb=None):
             "sources": sources,
             "answer": answer,
         })
+        st.rerun()
 
-    # 清除历史按钮
     if st.session_state.chat_history:
-        st.divider()
-        if st.button("🗑️ 清除对话历史", use_container_width=True):
+        if st.button("🗑️ 清除对话历史", use_container_width=True, key="chat_page_clear"):
             st.session_state.chat_history = []
             st.rerun()

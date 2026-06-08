@@ -7,6 +7,8 @@
 
 import streamlit as st
 import sys
+import html
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -77,6 +79,180 @@ st.set_page_config(
 st.title("🍼 宝宝巴适 BabyBites")
 st.caption("AI 辅助 6–12 月龄婴儿辅食推荐与过敏预警系统")
 
+st.markdown(
+    """
+    <style>
+    .bb-bus {
+        position: relative;
+        margin: 34px 0 38px;
+        padding: 38px 18px 42px;
+        border-bottom: 8px solid #414141;
+        border-radius: 30px 20px 10px 10px;
+        background: linear-gradient(180deg, #ffdf73 0%, #ffd54f 42%, #ffca28 100%);
+        box-shadow: 0 8px 26px rgba(44, 44, 44, 0.16);
+    }
+    .bb-bus-sign {
+        position: absolute;
+        top: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 6px 24px;
+        border: 2px solid #555;
+        border-radius: 18px;
+        background: #242424;
+        color: #ffd54f;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        box-shadow: 0 3px 10px rgba(0,0,0,.24);
+    }
+    .bb-bus-windows {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .bb-bus-window {
+        position: relative;
+        min-height: 116px;
+        padding: 12px 6px 10px;
+        border: 2px solid #d5d5d5;
+        border-radius: 12px 12px 8px 8px;
+        background: #fff;
+        color: #242424;
+        text-align: center;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,.04), 0 2px 7px rgba(0,0,0,.08);
+    }
+    .bb-bus-window::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 6px;
+        right: 6px;
+        height: 18px;
+        border-radius: 6px 6px 0 0;
+        background: linear-gradient(180deg, rgba(255,255,255,.8), transparent);
+        pointer-events: none;
+    }
+    .bb-bus-window.new {
+        border-color: #ff9800;
+        background: linear-gradient(180deg, #fff8e1, #fffef8 54%, #fff);
+    }
+    .bb-bus-window.today {
+        border-color: #2e7d32;
+        box-shadow: 0 0 0 3px rgba(46,125,50,.2), 0 2px 7px rgba(0,0,0,.08);
+    }
+    .bb-bus-day { position: relative; z-index: 1; font-size: 13px; font-weight: 800; }
+    .bb-bus-date { margin: 2px 0 6px; color: #888; font-size: 10px; }
+    .bb-bus-food {
+        margin: 3px 0;
+        padding: 3px 5px;
+        border-radius: 6px;
+        background: #fef3df;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+    .bb-bus-note {
+        margin-top: 5px;
+        color: #777;
+        font-size: 9px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+    .bb-bus-badge {
+        display: inline-block;
+        margin-left: 3px;
+        padding: 1px 4px;
+        border-radius: 5px;
+        background: #2e7d32;
+        color: #fff;
+        font-size: 8px;
+    }
+    .bb-bus-wheels {
+        position: absolute;
+        right: 8%;
+        bottom: -25px;
+        left: 8%;
+        display: flex;
+        justify-content: space-between;
+        pointer-events: none;
+    }
+    .bb-bus-wheel {
+        width: 44px;
+        height: 44px;
+        border: 4px solid #292929;
+        border-radius: 50%;
+        background: radial-gradient(circle, #c4c4c4 0 20%, #737373 22% 34%, #383838 36% 100%);
+        box-shadow: 0 4px 8px rgba(0,0,0,.36);
+    }
+    .bb-bus::before, .bb-bus::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        z-index: 2;
+        height: 8px;
+    }
+    .bb-bus::before {
+        left: 6px;
+        width: 14px;
+        border-radius: 2px 6px 2px 2px;
+        background: #d32f2f;
+        box-shadow: 0 0 7px rgba(211,47,47,.7);
+    }
+    .bb-bus::after {
+        right: 6px;
+        width: 18px;
+        border-radius: 6px 2px 2px 2px;
+        background: #fff176;
+        box-shadow: 0 0 11px rgba(255,241,118,.9);
+    }
+    @media (max-width: 900px) {
+        .bb-bus-windows { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+        .bb-bus { padding: 34px 9px 40px; }
+        .bb-bus-window { min-height: 96px; }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def render_plan_bus(plan):
+    """Render the weekly plan using the campus-bus visual from the React frontend."""
+    windows = []
+    today = date.today().isoformat()
+    for day in plan:
+        foods = "".join(
+            f"<div class='bb-bus-food'>{html.escape(str(food))}</div>"
+            for food in day.get("foods", [])
+        ) or "<div class='bb-bus-food'>待安排</div>"
+        classes = ["bb-bus-window"]
+        if day.get("is_new_food"):
+            classes.append("new")
+        if day.get("date") == today:
+            classes.append("today")
+        badges = []
+        if day.get("is_new_food"):
+            badges.append("新食材")
+        if day.get("date") == today:
+            badges.append("今天")
+        badge_html = "".join(f"<span class='bb-bus-badge'>{x}</span>" for x in badges)
+        date_label = html.escape(str(day.get("date", ""))[5:])
+        note = html.escape(str(day.get("serving_note", "")))
+        windows.append(
+            f"<div class='{' '.join(classes)}'>"
+            f"<div class='bb-bus-day'>{html.escape(str(day.get('day', '')))}{badge_html}</div>"
+            f"<div class='bb-bus-date'>{date_label}</div>{foods}"
+            f"<div class='bb-bus-note'>{note}</div></div>"
+        )
+    st.markdown(
+        "<div class='bb-bus'><div class='bb-bus-sign'>宝宝巴适 · 辅食排菜</div>"
+        f"<div class='bb-bus-windows'>{''.join(windows)}</div>"
+        "<div class='bb-bus-wheels'><div class='bb-bus-wheel'></div>"
+        "<div class='bb-bus-wheel'></div></div></div>",
+        unsafe_allow_html=True,
+    )
+
 # ===== 侧边栏：宝宝信息录入 =====
 
 with st.sidebar:
@@ -89,29 +265,14 @@ with st.sidebar:
         "已知过敏原",
         ["鸡蛋", "牛奶", "花生", "鱼类", "虾", "大豆", "小麦", "坚果", "芝麻"],
     )
-    # 自定义过敏原输入（支持日常口语，LLM自动解析）
-    custom_allergen = st.text_input(
+    # 自由文本忌口仅作为后续 LLM 上下文，不参与已知过敏原匹配或规则判定。
+    other_restrictions = st.text_input(
         "➕ 其他过敏/忌口（如：海鲜、面食、发物…）",
-        placeholder="输入后回车 → LLM自动匹配",
-        key="custom_allergen_input",
+        placeholder="按原文提供给评估、计划和智能问答，不自动匹配",
+        key="other_restrictions_input",
     )
-    if custom_allergen:
-        resolved = st.session_state.kb.resolve_allergen_query(
-            custom_allergen, llm=st.session_state.llm
-        )
-        if resolved:
-            names = []
-            for aid in resolved:
-                for aname, a in st.session_state.kb._allergens.items():
-                    if not aname.startswith("_") and a.get("id") == aid:
-                        names.append(aname)
-                        break
-            if names:
-                st.caption(f"💡 「{custom_allergen}」已匹配：{'、'.join(names)}")
-                # 自动合并到 allergies_raw
-                allergies_raw = list(set(allergies_raw + names))
-        else:
-            st.caption(f"❓ 「{custom_allergen}」未能匹配到已知过敏原，已忽略")
+    if other_restrictions:
+        st.caption("该内容不会自动并入已知过敏原，将作为原文上下文交给后续 AI。")
     tried_foods_raw = st.multiselect(
         "已尝试食材",
         ["大米粉", "小米", "燕麦", "玉米",
@@ -124,35 +285,39 @@ with st.sidebar:
          "酸奶", "奶酪", "核桃", "芝麻粉"],
     )
     notes = st.text_area("备注（发育信号等）", placeholder="如：宝宝能坐稳了，看我们吃饭会伸手…", height=80)
-    budget = st.selectbox("预算", ["未指定", "低", "中", "高"])
-    prefer_homemade = st.checkbox("偏好自制", value=False)
-    avoid_categories = st.multiselect(
-        "希望避免的类别",
-        ["dairy", "seafood", "high_sodium", "added_sugar"],
-    )
+    budget_raw = st.selectbox("预算", ["未指定", "低", "中", "高"])
+    homemade_raw = st.selectbox("是否偏好自制", ["未指定", "是", "否"])
     feedback_food_name = st.text_input("近期不良反应食物", placeholder="如：南瓜泥")
-    feedback_reaction = st.selectbox(
-        "近期反应",
-        ["none", "diarrhea", "vomiting", "rash", "refusal", "other"],
+    feedback_reaction_raw = st.selectbox(
+        "不良反应类型",
+        ["未填写", "腹泻", "呕吐", "皮疹", "拒绝进食", "其他不适"],
     )
-    feedback_date = st.text_input("反应日期", placeholder="YYYY-MM-DD")
+    feedback_date_enabled = st.checkbox("填写反应日期", value=False)
+    feedback_date_raw = st.date_input("反应日期", disabled=not feedback_date_enabled)
 
     # 构建宝宝画像
     feeding_map = {"纯母乳": "breast", "配方奶": "formula", "混合喂养": "mixed"}
+    budget_map = {"未指定": None, "低": "low", "中": "medium", "高": "high"}
+    homemade_map = {"未指定": None, "是": True, "否": False}
+    reaction_map = {
+        "未填写": None, "腹泻": "diarrhea", "呕吐": "vomiting",
+        "皮疹": "rash", "拒绝进食": "refusal", "其他不适": "other",
+    }
     baby_profile = {
         "age_months": age_months,
         "corrected_age_months": corrected_age if corrected_age > 0 else None,
         "allergies": allergies_raw,
+        "other_restrictions": other_restrictions.strip() or None,
         "feeding_method": feeding_map.get(feeding_method_raw, "breast"),
         "tried_foods": tried_foods_raw,
         "notes": notes,
         "preterm": corrected_age > 0,
-        "budget": None if budget == "未指定" else budget,
-        "prefer_homemade": prefer_homemade,
-        "avoid_categories": avoid_categories,
+        "budget": budget_map[budget_raw],
+        "prefer_homemade": homemade_map[homemade_raw],
+        "avoid_categories": [],
         "feedback_food_name": feedback_food_name or None,
-        "feedback_reaction": feedback_reaction,
-        "feedback_date": feedback_date or None,
+        "feedback_reaction": reaction_map[feedback_reaction_raw],
+        "feedback_date": feedback_date_raw.isoformat() if feedback_date_enabled else None,
     }
 
     st.divider()
@@ -212,6 +377,8 @@ with tab1:
                 st.success(result["recommendation"])
             else:
                 st.warning(result["recommendation"])
+        if result.get("llm_advisory_context"):
+            st.info(result["llm_advisory_context"])
 
         # ---- 阻止原因 ----
         if result.get("blocking_reasons"):
@@ -231,7 +398,8 @@ with tab1:
             st.subheader("🍽️ 食材安全标签")
             avoid_list = []
             caution_list = []
-            suitable_list = []
+            recommended = []
+            later_list = []
 
             for fid, fr in food_results.items():
                 tag = fr.get("tag", "unknown")
@@ -375,25 +543,7 @@ with tab2:
             if new_foods:
                 st.info(f"🆕 本周引入新食材：{'、'.join(new_foods)}。每次一种，观察3-5天。")
 
-            # 周历视图
-            cols = st.columns(7)
-            day_names = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
-
-            for i, day_data in enumerate(plan):
-                with cols[i]:
-                    day_label = day_data.get("day", day_names[i])
-                    foods = day_data.get("foods", [])
-                    is_new = day_data.get("is_new_food", False)
-
-                    # 背景色
-                    bg = "#FFF3CD" if is_new else "#E8F5E9"
-                    st.markdown(
-                        f"""<div style='background:{bg};padding:8px;border-radius:6px;min-height:100px;color:#1a1a1a'>
-                        <b>{day_label}</b>{' 🆕' if is_new else ''}<br>
-                        {'<br>'.join(foods) if foods else '—'}
-                        </div>""",
-                        unsafe_allow_html=True,
-                    )
+            render_plan_bus(plan)
 
             # 营养建议
             notes = plan_result.get("nutrition_notes", [])
@@ -590,6 +740,7 @@ with tab4:
         st.caption(
             f"当前宝宝：{baby_profile.get('age_months', '?')}月龄"
             + (f"，过敏：{'、'.join(baby_profile.get('allergies', []))}" if baby_profile.get("allergies") else "")
+            + (f"，其他忌口：{baby_profile.get('other_restrictions')}" if baby_profile.get("other_restrictions") else "")
             + (f"，已尝试：{len(baby_profile.get('tried_foods', []))}种" if baby_profile.get("tried_foods") else "")
         )
 
