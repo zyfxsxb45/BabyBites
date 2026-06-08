@@ -22,6 +22,9 @@ from agents.chat import ChatAgent
 from agents.user_profile import UserProfileAgent
 from utils.loader import init_kb, init_llm
 
+from data.feedback_store import FeedbackStore
+from rules.feedback import get_feedback_adjusted_foods
+
 # 全局单例（避免每次调用重复初始化）
 _kb: JSONKnowledgeBase | None = None
 _llm: Any = None
@@ -31,10 +34,11 @@ _plan: PlanGenerationAgent | None = None
 _label: LabelParsingAgent | None = None
 _chat: ChatAgent | None = None
 _profile_agent: UserProfileAgent | None = None
+_feedback_store: FeedbackStore | None = None
 
 
 def _ensure_init():
-    global _kb, _llm, _engine, _safety, _plan, _label, _chat, _profile_agent
+    global _kb, _llm, _engine, _safety, _plan, _label, _chat, _profile_agent, _feedback_store
     if _kb is None:
         _kb = init_kb()
         try:
@@ -47,6 +51,7 @@ def _ensure_init():
         _label = LabelParsingAgent(kb=_kb, llm=_llm)
         _chat = ChatAgent(kb=_kb, llm=_llm)
         _profile_agent = UserProfileAgent(kb=_kb, llm=_llm)
+        _feedback_store = FeedbackStore()
 
 
 def evaluate_candidates(
@@ -185,6 +190,10 @@ def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | No
     _ensure_init()
     stage = _kb.get_age_stage(profile.get("age_months", 6))
 
+    # 收集避免食材（历史反馈 + 已知过敏）
+    avoid_food_ids = []
+    avoid_reasons = []
+
     if candidates:
         safe_foods = []
         for c in candidates:
@@ -192,6 +201,19 @@ def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | No
             if not resolved:
                 continue
             result = _engine.evaluate_food(resolved, profile)
+            if result.overall_tag == "avoid":
+                avoid_food_ids.append(c.get("food_id", ""))
+                if result.reasons:
+                    avoid_reasons.append(f"{c.get('food_name_zh', '')}: {'; '.join(result.reasons[:2])}")
+                continue
+            # 应用反馈过滤
+            food_name = resolved.get("name_zh", "")
+            if food_name and _feedback_store:
+                fb_label = _feedback_store.get_food_safety_label(food_name)
+                if fb_label == "avoid":
+                    avoid_food_ids.append(c.get("food_id", ""))
+                    avoid_reasons.append(f"{food_name}: 宝宝之前有过不良反应")
+                    continue
             if result.overall_tag == "suitable":
                 safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
     else:
@@ -203,7 +225,14 @@ def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | No
         "safe_foods": safe_foods,
         "stage": stage,
     })
-    return plan_result
+    return {
+        **plan_result,
+        "avoid_food_ids": avoid_food_ids,
+        "avoid_reasons": avoid_reasons,
+        "warnings": [
+            w for w in avoid_reasons
+        ] if avoid_reasons else [],
+    }
 
 
 def parse_label(ingredient_text: str, age_months: int = 6) -> dict[str, Any]:

@@ -107,6 +107,18 @@ class RuleEngine:
                 severity="warning",
             ))
 
+        # 1.8. 外部食材特有检查：配料未知
+        if food.get("_external") and food.get("category") == "unknown":
+            ing_text = food.get("_ingredient_text", "")
+            if not ing_text or ing_text == "":
+                results.append(RuleResult(
+                    tag="caution",
+                    reason=f"{food.get('name_zh', '该食材')}配料信息未知，无法评估过敏原和安全性，建议谨慎处理",
+                    rule_name="配料信息不足",
+                    source="CDC指南",
+                    severity="warning",
+                ))
+
         # 2. 月龄适龄
         results.append(
             check_age_appropriate(

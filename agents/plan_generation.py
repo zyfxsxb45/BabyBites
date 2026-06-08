@@ -65,6 +65,10 @@ class PlanGenerationAgent(LLMAgent):
             return self._evaluate_candidates(safe_foods, profile, stage)
 
         # recommend 模式：生成周计划
+        use_llm = input_data.get("use_llm", False) and self.llm is not None
+        if use_llm:
+            return self._generate_llm_plan(safe_foods, profile, stage)
+
         ranked = self._constraint_rank(safe_foods, profile)
         new_foods = self._select_new_foods(ranked, profile)
         plan = self._generate_weekly_plan(ranked, new_foods, profile, stage)
@@ -75,6 +79,83 @@ class PlanGenerationAgent(LLMAgent):
             "stage_label": stage.get("label", ""),
             "nutrition_notes": self._get_nutrition_notes(plan),
             "total_foods_available": len(safe_foods),
+            "mode": "rule",
+        }
+
+    def _generate_llm_plan(self, foods: list, profile: dict, stage: dict) -> dict:
+        """
+        LLM 模式：让大模型根据安全食材池 + 完整画像生成周计划。
+        规则负责安全过滤，LLM 负责排序、多样化、解释。
+        """
+        age = profile.get("age_months", 6)
+        allergies = profile.get("allergies", [])
+        tried = profile.get("tried_foods", [])
+        notes = profile.get("notes", "")
+
+        # 构建食材清单
+        food_lines = []
+        for item in foods[:15]:
+            fd = item.get("food_data", item)
+            name = fd.get("name_zh", "")
+            cat = fd.get("category", "")
+            iron = "高铁" if fd.get("iron_rich") else ""
+            min_age = fd.get("min_age_months", "")
+            food_lines.append(f"- {name}（{cat}）{iron}  {min_age}月龄起" if min_age else f"- {name}（{cat}）{iron}")
+        food_list = "\n".join(food_lines) if food_lines else "（无可选食材）"
+
+        prompt = f"""你是婴儿辅食周计划生成助手。根据安全食材池和宝宝信息，生成7天辅食计划。
+
+宝宝信息：
+- 月龄：{age}个月
+- 过敏原：{', '.join(allergies) if allergies else '无'}
+- 已尝试食材：{', '.join(tried) if tried else '无'}
+- 备注：{notes}
+- 阶段：{stage.get('label', '')}（{stage.get('texture', '')}）
+
+安全食材池（只能从这里选，不能加入其他食材）：
+{food_list}
+
+要求：
+1. 返回纯 JSON 对象，格式为：
+{{"plan": [{{"day": "周一", "foods": ["猪肝泥", "米粉"], "is_new_food": true, "serving_note": "从少量开始"}}, ...], "new_foods_this_week": ["猪肝"], "nutrition_notes": ["✅ 高铁食材：猪肝", "✅ 食材类别丰富"]}}
+2. 每天安排1-2种食材
+3. 新食材优先放周一/周二（留足观察时间）
+4. 同类食材不连续两天重复
+5. 一周内蔬菜、肉类、谷物、水果都覆盖
+6. 避开过敏原
+7. 鼓励多样性和逐日变化
+8. 只返回 JSON，不附加解释"""
+
+        try:
+            result = self._ask_llm_structured(
+                system_prompt="你是婴儿辅食计划生成助手。只返回JSON。",
+                user_message=prompt,
+                output_schema={"plan": [], "new_foods_this_week": [], "nutrition_notes": []},
+                max_tokens=1200,
+            )
+            if isinstance(result, dict) and result.get("plan"):
+                return {
+                    "plan": result["plan"],
+                    "new_foods_this_week": result.get("new_foods_this_week", []),
+                    "stage_label": stage.get("label", ""),
+                    "nutrition_notes": result.get("nutrition_notes", []),
+                    "total_foods_available": len(foods),
+                    "mode": "llm",
+                }
+        except Exception:
+            pass
+
+        # LLM 失败 → fallback 到规则模式
+        ranked = self._constraint_rank(foods, profile)
+        new_foods = self._select_new_foods(ranked, profile)
+        plan = self._generate_weekly_plan(ranked, new_foods, profile, stage)
+        return {
+            "plan": plan,
+            "new_foods_this_week": [f.get("name_zh", "") for f in new_foods],
+            "stage_label": stage.get("label", ""),
+            "nutrition_notes": self._get_nutrition_notes(plan),
+            "total_foods_available": len(foods),
+            "mode": "rule_fallback",
         }
 
     def _evaluate_candidates(self, foods: list, profile: dict, stage: dict) -> dict:
