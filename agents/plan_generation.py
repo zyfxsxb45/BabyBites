@@ -134,8 +134,14 @@ class PlanGenerationAgent(LLMAgent):
                 max_tokens=1200,
             )
             if isinstance(result, dict) and result.get("plan"):
+                # 为 LLM 生成的计划补上 food_details
+                llm_plan = result["plan"]
+                for day in llm_plan:
+                    day["food_details"] = self._build_food_details(
+                        day.get("foods", []), stage
+                    )
                 return {
-                    "plan": result["plan"],
+                    "plan": llm_plan,
                     "new_foods_this_week": result.get("new_foods_this_week", []),
                     "stage_label": stage.get("label", ""),
                     "nutrition_notes": result.get("nutrition_notes", []),
@@ -250,13 +256,20 @@ class PlanGenerationAgent(LLMAgent):
     # ===== 新食材选择 =====
 
     def _select_new_foods(self, foods: list, profile: dict) -> list:
-        """选择本周引入的新食材（已尝试过的优先排除）"""
+        """选择本周引入的新食材（已尝试过的优先排除）。支持中英文名。"""
         tried = set(profile.get("tried_foods", []))
-        return [
-            f["food_data"]
-            for f in foods[:5]
-            if f["food_data"].get("name_zh") not in tried
-        ][:3]
+        tried_lower = {t.lower() for t in tried}
+        result = []
+        for f in foods[:10]:
+            fd = f.get("food_data", f)
+            name_zh = fd.get("name_zh", "")
+            name_en = fd.get("name_en", "")
+            if name_zh in tried or name_en.lower() in tried_lower:
+                continue
+            result.append(fd)
+            if len(result) >= 3:
+                break
+        return result
 
     # ===== 周计划生成 =====
 

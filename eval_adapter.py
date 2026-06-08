@@ -224,6 +224,7 @@ def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | No
         "profile": profile,
         "safe_foods": safe_foods,
         "stage": stage,
+        "use_llm": _llm is not None,
     })
     return {
         **plan_result,

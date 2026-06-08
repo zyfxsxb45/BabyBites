@@ -192,6 +192,7 @@ def generate_plan(req: PlanRequest):
         "profile": profile,
         "safe_foods": filtered,
         "stage": stage,
+        "use_llm": bool(req.candidates),  # 评测模式开 LLM
     })
 
     # 二次校验：规则引擎重新验证计划
