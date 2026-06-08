@@ -124,6 +124,18 @@ with st.sidebar:
          "酸奶", "奶酪", "核桃", "芝麻粉"],
     )
     notes = st.text_area("备注（发育信号等）", placeholder="如：宝宝能坐稳了，看我们吃饭会伸手…", height=80)
+    budget = st.selectbox("预算", ["未指定", "低", "中", "高"])
+    prefer_homemade = st.checkbox("偏好自制", value=False)
+    avoid_categories = st.multiselect(
+        "希望避免的类别",
+        ["dairy", "seafood", "high_sodium", "added_sugar"],
+    )
+    feedback_food_name = st.text_input("近期不良反应食物", placeholder="如：南瓜泥")
+    feedback_reaction = st.selectbox(
+        "近期反应",
+        ["none", "diarrhea", "vomiting", "rash", "refusal", "other"],
+    )
+    feedback_date = st.text_input("反应日期", placeholder="YYYY-MM-DD")
 
     # 构建宝宝画像
     feeding_map = {"纯母乳": "breast", "配方奶": "formula", "混合喂养": "mixed"}
@@ -134,6 +146,13 @@ with st.sidebar:
         "feeding_method": feeding_map.get(feeding_method_raw, "breast"),
         "tried_foods": tried_foods_raw,
         "notes": notes,
+        "preterm": corrected_age > 0,
+        "budget": None if budget == "未指定" else budget,
+        "prefer_homemade": prefer_homemade,
+        "avoid_categories": avoid_categories,
+        "feedback_food_name": feedback_food_name or None,
+        "feedback_reaction": feedback_reaction,
+        "feedback_date": feedback_date or None,
     }
 
     st.divider()
@@ -280,7 +299,7 @@ with tab2:
         # 构建安全食材池
         safe_foods = []
         for fid, fr in food_results.items():
-            if fr.get("tag") != "avoid":
+            if fr.get("tag") == "suitable":
                 food_data = st.session_state.kb.get_food(fid) or st.session_state.kb.get_food_by_name(fid)
                 if food_data:
                     safe_foods.append({"food_data": food_data, "tag": fr.get("tag", "suitable")})
@@ -291,7 +310,8 @@ with tab2:
         new_pool = [f for f in safe_foods if f["food_data"].get("name_zh") not in tried_names]
 
         # 新食材优先推荐高铁+该阶段关键品类
-        stage_for_rank = st.session_state.kb.get_age_stage(age_months)
+        effective_age = corrected_age if corrected_age > 0 else age_months
+        stage_for_rank = st.session_state.kb.get_age_stage(effective_age)
         key_nutrients = stage_for_rank.get("key_nutrients", ["铁"]) if stage_for_rank else ["铁"]
         def new_food_score(item):
             fd = item["food_data"]
@@ -319,13 +339,25 @@ with tab2:
                     adjusted = get_feedback_adjusted_foods(
                         plan_foods, st.session_state.feedback_store, kb=st.session_state.kb
                     )
-                    filtered = [f for f in adjusted if f.get("tag") != "avoid"]
+                    feedback_name = str(baby_profile.get("feedback_food_name") or "").strip().lower()
+                    feedback_reaction = str(baby_profile.get("feedback_reaction") or "").strip().lower()
+                    filtered = [f for f in adjusted if f.get("tag") == "suitable"]
+                    if feedback_name and feedback_reaction not in {"", "none", "unknown"}:
+                        filtered = [
+                            item for item in filtered
+                            if feedback_name not in {
+                                str(item["food_data"].get("name_zh") or "").strip().lower(),
+                                str(item["food_data"].get("name_en") or "").strip().lower(),
+                                str(item["food_data"].get("id") or "").strip().lower(),
+                            }
+                        ]
 
-                    stage = st.session_state.kb.get_age_stage(age_months)
+                    stage = st.session_state.kb.get_age_stage(effective_age)
                     plan_result = st.session_state.plan_agent.process({
                         "profile": baby_profile,
-                        "safe_foods": filtered if filtered else plan_foods,
+                        "safe_foods": filtered,
                         "stage": stage,
+                        "use_llm": st.session_state.plan_agent.llm is not None,
                     })
                     st.session_state.weekly_plan = plan_result
                 except Exception as e:

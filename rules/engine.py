@@ -14,6 +14,7 @@ from .age import check_age_appropriate, check_strictly_avoided
 from .texture import check_texture_match
 from .interval import check_new_food_interval
 from .nutrition import check_nutrient_coverage
+from kb.external_food import is_missing_value
 
 
 class RuleEngine:
@@ -110,7 +111,7 @@ class RuleEngine:
         # 1.8. 外部食材特有检查：配料未知
         if food.get("_external") and food.get("category") == "unknown":
             ing_text = food.get("_ingredient_text", "")
-            if not ing_text or ing_text == "":
+            if is_missing_value(ing_text):
                 results.append(RuleResult(
                     tag="caution",
                     reason=f"{food.get('name_zh', '该食材')}配料信息未知，无法评估过敏原和安全性，建议谨慎处理",

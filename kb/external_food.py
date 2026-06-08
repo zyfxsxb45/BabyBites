@@ -8,6 +8,7 @@
 核心原则：不丢弃数据。KB 没有的食材，只要有元数据字段就能做安全判断。
 """
 
+import math
 from typing import Any, Optional
 
 # 外部过敏原字段 → 内部过敏原名称
@@ -46,7 +47,7 @@ def external_food_to_internal(raw: dict[str, Any]) -> Optional[dict[str, Any]]:
             allergens.append(internal_name)
 
     food = {
-        "id": f"ext_{hash(name_zh or name_en) & 0xFFFFFFFF:08x}",
+        "id": raw.get("food_id") or f"ext_{hash(name_zh or name_en) & 0xFFFFFFFF:08x}",
         "name_zh": name_zh,
         "name_en": name_en,
         "category": raw.get("food_category") or raw.get("category") or "unknown",
@@ -66,7 +67,7 @@ def external_food_to_internal(raw: dict[str, Any]) -> Optional[dict[str, Any]]:
         "_is_choking_risk": bool(raw.get("is_choking_risk_candidate")),
         "_sodium_mg": _safe_float(raw.get("sodium_mg")),
         "_allergen_flags": {k: bool(raw.get(k)) for k in _EXTERNAL_ALLERGEN_MAP},
-        "_ingredient_text": raw.get("ingredient_text") or "",
+        "_ingredient_text": "" if is_missing_value(raw.get("ingredient_text")) else str(raw.get("ingredient_text")).strip(),
     }
 
     # 补铁含量（如果有的话）
@@ -82,6 +83,15 @@ def external_food_to_internal(raw: dict[str, Any]) -> Optional[dict[str, Any]]:
 def is_external_food(food: dict[str, Any]) -> bool:
     """判断食材是否来自外部（非内置知识库）"""
     return bool(food.get("_external"))
+
+
+def is_missing_value(value: Any) -> bool:
+    """Return True for None, NaN, blank strings, and common missing markers."""
+    if value is None:
+        return True
+    if isinstance(value, float) and math.isnan(value):
+        return True
+    return str(value).strip().lower() in {"", "nan", "none", "null"}
 
 
 def resolve_food(food_raw: dict[str, Any], kb=None) -> Optional[dict[str, Any]]:

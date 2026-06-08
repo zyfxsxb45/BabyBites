@@ -54,6 +54,12 @@ class PlanGenerationAgent(LLMAgent):
         """
         profile = input_data.get("profile", {})
         safe_foods = input_data.get("safe_foods", [])
+        self._active_foods_by_name = {}
+        for item in safe_foods:
+            food = item.get("food_data", item) if isinstance(item, dict) else item
+            for name in (food.get("name_zh"), food.get("name_en")):
+                if name:
+                    self._active_foods_by_name[str(name).lower()] = food
         stage = input_data.get("stage", {})
         mode = input_data.get("mode", "recommend")
 
@@ -91,6 +97,9 @@ class PlanGenerationAgent(LLMAgent):
         allergies = profile.get("allergies", [])
         tried = profile.get("tried_foods", [])
         notes = profile.get("notes", "")
+        budget = profile.get("budget") or profile.get("budget_level") or "未指定"
+        prefer_homemade = profile.get("prefer_homemade")
+        avoid_categories = profile.get("avoid_categories", [])
 
         # 构建食材清单
         food_lines = []
@@ -110,6 +119,9 @@ class PlanGenerationAgent(LLMAgent):
 - 过敏原：{', '.join(allergies) if allergies else '无'}
 - 已尝试食材：{', '.join(tried) if tried else '无'}
 - 备注：{notes}
+- 预算：{budget}
+- 偏好自制：{prefer_homemade if prefer_homemade is not None else '未指定'}
+- 希望避免类别：{', '.join(avoid_categories) if avoid_categories else '无'}
 - 阶段：{stage.get('label', '')}（{stage.get('texture', '')}）
 
 安全食材池（只能从这里选，不能加入其他食材）：
@@ -126,20 +138,36 @@ class PlanGenerationAgent(LLMAgent):
 7. 鼓励多样性和逐日变化
 8. 只返回 JSON，不附加解释"""
 
+        fallback_reason = "LLM returned no valid plan"
         try:
             result = self._ask_llm_structured(
                 system_prompt="你是婴儿辅食计划生成助手。只返回JSON。",
                 user_message=prompt,
                 output_schema={"plan": [], "new_foods_this_week": [], "nutrition_notes": []},
-                max_tokens=1200,
+                max_tokens=4096,
             )
             if isinstance(result, dict) and result.get("plan"):
+                allowed_names = {
+                    name
+                    for item in foods
+                    for name in (
+                        item.get("food_data", item).get("name_zh"),
+                        item.get("food_data", item).get("name_en"),
+                    )
+                    if name
+                }
                 # 为 LLM 生成的计划补上 food_details
                 llm_plan = result["plan"]
                 for day in llm_plan:
+                    day["foods"] = [
+                        name for name in day.get("foods", [])
+                        if name in allowed_names
+                    ][:2]
                     day["food_details"] = self._build_food_details(
                         day.get("foods", []), stage
                     )
+                if len(llm_plan) != 7 or any(not day.get("foods") for day in llm_plan):
+                    raise ValueError("LLM plan must contain seven non-empty days using only safe foods")
                 return {
                     "plan": llm_plan,
                     "new_foods_this_week": result.get("new_foods_this_week", []),
@@ -148,8 +176,8 @@ class PlanGenerationAgent(LLMAgent):
                     "total_foods_available": len(foods),
                     "mode": "llm",
                 }
-        except Exception:
-            pass
+        except Exception as exc:
+            fallback_reason = f"{type(exc).__name__}: {exc}"
 
         # LLM 失败 → fallback 到规则模式
         ranked = self._constraint_rank(foods, profile)
@@ -162,6 +190,7 @@ class PlanGenerationAgent(LLMAgent):
             "nutrition_notes": self._get_nutrition_notes(plan),
             "total_foods_available": len(foods),
             "mode": "rule_fallback",
+            "fallback_reason": fallback_reason,
         }
 
     def _evaluate_candidates(self, foods: list, profile: dict, stage: dict) -> dict:
@@ -343,7 +372,7 @@ class PlanGenerationAgent(LLMAgent):
         stage_texture = stage.get("texture", "泥糊状") if stage else "泥糊状"
 
         for name in food_names:
-            food = self.kb.get_food_by_name(name) if self.kb else None
+            food = self._lookup_food(name)
             if not food:
                 details[name] = {"notes": "该食材未收录详细信息"}
                 continue
@@ -380,7 +409,7 @@ class PlanGenerationAgent(LLMAgent):
         if self.kb:
             iron_rich_in_plan = [
                 n for n in all_foods
-                if (food := self.kb.get_food_by_name(n)) and food.get("iron_rich")
+                if (food := self._lookup_food(n)) and food.get("iron_rich")
             ]
             if iron_rich_in_plan:
                 notes.append(f"✅ 本周高铁食材：{'、'.join(iron_rich_in_plan)}")
@@ -390,7 +419,7 @@ class PlanGenerationAgent(LLMAgent):
         # 类别覆盖度
         categories = set()
         for name in all_foods:
-            food = self.kb.get_food_by_name(name) if self.kb else None
+            food = self._lookup_food(name)
             if food and food.get("category"):
                 categories.add(food["category"])
 
@@ -400,6 +429,13 @@ class PlanGenerationAgent(LLMAgent):
             notes.append(f"💡 可增加类别多样性，当前仅覆盖 {len(categories)} 类")
 
         return notes
+
+    def _lookup_food(self, name: str) -> dict | None:
+        active = getattr(self, "_active_foods_by_name", {})
+        food = active.get(str(name).lower())
+        if food:
+            return food
+        return self.kb.get_food_by_name(name) if self.kb else None
 
     @staticmethod
     def _start_date() -> date:
