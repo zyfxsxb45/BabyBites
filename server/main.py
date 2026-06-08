@@ -61,6 +61,12 @@ class BabyProfile(BaseModel):
     tried_foods: list[str] = []
     notes: str = ""
     preterm: bool = False
+    budget: Optional[str] = None
+    prefer_homemade: Optional[bool] = None
+    avoid_categories: list[str] = []
+    feedback_food_name: Optional[str] = None
+    feedback_reaction: Optional[str] = None
+    feedback_date: Optional[str] = None
 
 
 class AssessRequest(BaseModel):
@@ -69,6 +75,7 @@ class AssessRequest(BaseModel):
 
 class PlanRequest(BaseModel):
     profile: BabyProfile
+    candidates: Optional[list[dict]] = None  # 候选食材列表，不传则用全量KB
 
 
 class LabelRequest(BaseModel):
@@ -148,9 +155,21 @@ def assess(req: AssessRequest):
 
 @app.post("/api/plan")
 def generate_plan(req: PlanRequest):
-    """生成一周辅食计划"""
+    """生成一周辅食计划。candidates 非空时只从候选池生成，否则用全量KB。"""
     profile = req.profile.model_dump()
-    stage = kb.get_age_stage(profile["age_months"])
+    effective_age = profile.get("corrected_age_months") if profile.get("preterm") else None
+    effective_age = effective_age if effective_age is not None else profile["age_months"]
+    stage = kb.get_age_stage(effective_age)
+    if effective_age < 6:
+        return {
+            "plan": [],
+            "new_foods_this_week": [],
+            "stage_label": (stage or {}).get("label", ""),
+            "nutrition_notes": ["矫正月龄不足6个月，暂不生成常规辅食计划。"],
+            "validated": True,
+            "validation_warnings": ["矫正月龄不足6个月，尚未达到常规辅食引入阶段。"],
+            "validation_violations": [],
+        }
 
     # 从备注中提取过敏/不耐受食材，注入过敏原列表（以便 engine 统一拦截）
     notes = profile.get("notes", "")
@@ -163,29 +182,64 @@ def generate_plan(req: PlanRequest):
         if notes_avoid:
             profile["allergies"] = list(set(profile.get("allergies", [])) | notes_avoid)
 
-    # 安全食材池
-    all_foods = kb.list_foods_by_age(profile["age_months"])
     safe_foods = []
-    for f in all_foods:
-        result = engine.evaluate_food(f, profile)
-        if result.overall_tag != "avoid":
-            safe_foods.append({"food_data": f, "tag": result.overall_tag})
+
+    if req.candidates:
+        # 评测/约束模式：只从给定候选池中选，只用 safe
+        from kb.external_food import resolve_food
+        for c in req.candidates:
+            resolved = resolve_food(c, kb=kb)
+            if not resolved:
+                continue
+            result = engine.evaluate_food(resolved, profile)
+            category = str(c.get("food_category") or resolved.get("category") or "").lower()
+            if category in {str(x).lower() for x in profile.get("avoid_categories", [])}:
+                continue
+            if result.overall_tag == "suitable":
+                safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
+    else:
+        # 正常模式：全量KB
+        all_foods = kb.list_foods_by_age(profile["age_months"])
+        for f in all_foods:
+            result = engine.evaluate_food(f, profile)
+            if result.overall_tag != "avoid":
+                safe_foods.append({"food_data": f, "tag": result.overall_tag})
 
     # 应用反馈调整
     adjusted = get_feedback_adjusted_foods(safe_foods, feedback_store, kb=kb)
-    filtered = [f for f in adjusted if f.get("tag") != "avoid"]
+    feedback_name = str(profile.get("feedback_food_name") or "").strip().lower()
+    feedback_reaction = str(profile.get("feedback_reaction") or "").strip().lower()
+    if feedback_name and feedback_reaction not in {"", "none", "unknown"}:
+        adjusted = [
+            item for item in adjusted
+            if feedback_name not in {
+                str(item["food_data"].get("name_zh") or "").strip().lower(),
+                str(item["food_data"].get("name_en") or "").strip().lower(),
+                str(item["food_data"].get("id") or "").strip().lower(),
+            }
+        ]
+    filtered = [f for f in adjusted if f.get("tag") == "suitable"]
 
     result = plan_agent.process({
         "profile": profile,
         "safe_foods": filtered,
         "stage": stage,
+        "use_llm": bool(req.candidates),  # 评测模式开 LLM
     })
+
+    # 二次校验：规则引擎重新验证计划
+    from agents.validation import ValidationAgent
+    validator = ValidationAgent(kb=kb, rule_engine=engine)
+    validation = validator.process({"plan": result["plan"], "profile": profile})
 
     return {
         "plan": result["plan"],
         "new_foods_this_week": result["new_foods_this_week"],
         "stage_label": result["stage_label"],
         "nutrition_notes": result["nutrition_notes"],
+        "validated": validation["passed"],
+        "validation_warnings": validation.get("warnings", []),
+        "validation_violations": validation.get("violations", []),
     }
 
 

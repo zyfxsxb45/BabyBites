@@ -6,6 +6,7 @@
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,9 @@ from agents.chat import ChatAgent
 from agents.user_profile import UserProfileAgent
 from utils.loader import init_kb, init_llm
 
+from data.feedback_store import FeedbackStore
+from rules.feedback import get_feedback_adjusted_foods
+
 # 全局单例（避免每次调用重复初始化）
 _kb: JSONKnowledgeBase | None = None
 _llm: Any = None
@@ -31,10 +35,11 @@ _plan: PlanGenerationAgent | None = None
 _label: LabelParsingAgent | None = None
 _chat: ChatAgent | None = None
 _profile_agent: UserProfileAgent | None = None
+_feedback_store: FeedbackStore | None = None
 
 
 def _ensure_init():
-    global _kb, _llm, _engine, _safety, _plan, _label, _chat, _profile_agent
+    global _kb, _llm, _engine, _safety, _plan, _label, _chat, _profile_agent, _feedback_store
     if _kb is None:
         _kb = init_kb()
         try:
@@ -47,6 +52,7 @@ def _ensure_init():
         _label = LabelParsingAgent(kb=_kb, llm=_llm)
         _chat = ChatAgent(kb=_kb, llm=_llm)
         _profile_agent = UserProfileAgent(kb=_kb, llm=_llm)
+        _feedback_store = FeedbackStore()
 
 
 def evaluate_candidates(
@@ -151,6 +157,10 @@ def evaluate_candidates(
             "reasons": reasons,
         })
 
+        # 未知食材补充规则 ID
+        if decision == "insufficient_information":
+            items[-1]["triggered_rule_ids"].append("R_INSUFFICIENT_INGREDIENT_INFO")
+
     # 全局年龄阻断
     age = profile.get("corrected_age_months") or profile.get("age_months", 6)
     if age < 6:
@@ -164,7 +174,7 @@ def evaluate_candidates(
         "profile_summary": {
             "can_start": safety_result.get("can_start"),
             "effective_age": safety_result.get("effective_age_months"),
-            "stage": safety_result.get("stage", {}).get("label", ""),
+            "stage": (safety_result.get("stage") or {}).get("label", ""),
         },
     }
 
@@ -177,19 +187,83 @@ def extract_profile(user_input: str) -> dict[str, Any]:
 
 
 def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """生成周计划（可选限制候选池）"""
+    """生成周计划。candidates 非空时严格从候选池生成。"""
     _ensure_init()
-    stage = _kb.get_age_stage(profile.get("age_months", 6))
+    effective_age = profile.get("corrected_age_months") if profile.get("preterm") else None
+    effective_age = effective_age if effective_age is not None else profile.get("age_months", 6)
+    stage = _kb.get_age_stage(effective_age)
 
-    # 构建安全食材池
+    # 收集避免食材（历史反馈 + 已知过敏）
+    avoid_food_ids = []
+    avoid_reasons = []
+    excluded_food_ids = []
+    excluded_reasons = []
+
+    if candidates and effective_age < 6:
+        return {
+            "plan": [],
+            "new_foods_this_week": [],
+            "stage_label": (stage or {}).get("label", ""),
+            "nutrition_notes": ["矫正月龄不足6个月，暂不生成常规辅食计划。"],
+            "avoid_food_ids": [c.get("food_id", "") for c in candidates],
+            "avoid_reasons": ["矫正月龄不足6个月，尚未达到常规辅食引入阶段。"],
+            "warnings": ["矫正月龄不足6个月，尚未达到常规辅食引入阶段。"],
+            "mode": "age_block",
+        }
+
+    feedback_names = _profile_feedback_names(profile)
+    avoid_categories = {
+        str(category).strip().lower()
+        for category in profile.get("avoid_categories", [])
+        if category
+    }
     if candidates:
         safe_foods = []
         for c in candidates:
             resolved = resolve_food(c, kb=_kb)
-            if resolved:
-                result = _engine.evaluate_food(resolved, profile)
-                if result.overall_tag != "avoid":
-                    safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
+            if not resolved:
+                continue
+            result = _engine.evaluate_food(resolved, profile)
+            if result.overall_tag == "avoid":
+                avoid_food_ids.append(c.get("food_id", ""))
+                if result.reasons:
+                    avoid_reasons.append(f"{c.get('food_name_zh', '')}: {'; '.join(result.reasons[:2])}")
+                continue
+            # 应用反馈过滤
+            food_name = resolved.get("name_zh", "")
+            candidate_names = {
+                str(value).strip().lower()
+                for value in (
+                    food_name, resolved.get("name_en"), c.get("food_name"),
+                    c.get("food_name_zh"), c.get("food_id"),
+                )
+                if value
+            }
+            if candidate_names & feedback_names:
+                avoid_food_ids.append(c.get("food_id", ""))
+                avoid_reasons.append(f"{food_name}: 宝宝之前有过不良反应")
+                continue
+            if result.overall_tag == "caution":
+                excluded_food_ids.append(c.get("food_id", ""))
+                excluded_reasons.append(
+                    f"{c.get('food_name_zh', '')}: {'; '.join(result.reasons[:2]) or '需要谨慎处理'}"
+                )
+                continue
+            candidate_category = str(
+                c.get("food_category") or resolved.get("category") or ""
+            ).strip().lower()
+            if candidate_category and candidate_category in avoid_categories:
+                avoid_food_ids.append(c.get("food_id", ""))
+                avoid_reasons.append(f"{food_name}: 属于家长希望避免的类别 {candidate_category}")
+                continue
+            if food_name and _feedback_store:
+                fb_label = _feedback_store.get_food_safety_label(food_name)
+                if fb_label == "avoid":
+                    avoid_food_ids.append(c.get("food_id", ""))
+                    avoid_reasons.append(f"{food_name}: 宝宝之前有过不良反应")
+                    continue
+            if result.overall_tag == "suitable":
+                safe_foods.append({"food_data": resolved, "tag": result.overall_tag})
     else:
         all_foods = _kb.list_foods_by_age(profile.get("age_months", 6))
         safe_foods = [{"food_data": f, "tag": "suitable"} for f in all_foods]
@@ -198,8 +272,30 @@ def generate_plan(profile: dict[str, Any], candidates: list[dict[str, Any]] | No
         "profile": profile,
         "safe_foods": safe_foods,
         "stage": stage,
+        "use_llm": _llm is not None,
     })
-    return plan_result
+    return {
+        **plan_result,
+        "avoid_food_ids": avoid_food_ids,
+        "avoid_reasons": avoid_reasons,
+        "excluded_caution_food_ids": excluded_food_ids,
+        "excluded_caution_reasons": excluded_reasons,
+        "warnings": [
+            w for w in avoid_reasons
+        ] + excluded_reasons,
+    }
+
+
+def _profile_feedback_names(profile: dict[str, Any]) -> set[str]:
+    reaction = str(profile.get("feedback_reaction") or "").strip().lower()
+    names = set()
+    if reaction not in {"", "none", "unknown"} and profile.get("feedback_food_name"):
+        names.add(str(profile["feedback_food_name"]).strip().lower())
+    notes = str(profile.get("notes") or "")
+    match = re.search(r"宝宝吃了(.+?)后出现", notes)
+    if match:
+        names.add(match.group(1).strip().lower())
+    return names
 
 
 def parse_label(ingredient_text: str, age_months: int = 6) -> dict[str, Any]:
@@ -208,16 +304,26 @@ def parse_label(ingredient_text: str, age_months: int = 6) -> dict[str, Any]:
     return _label.process({"ingredient_text": ingredient_text, "age_months": age_months})
 
 
-def chat(message: str, history: list[dict] | None = None) -> dict[str, Any]:
-    """智能问答"""
+def chat(message: str, history: list[dict] | None = None, candidates: list[dict] | None = None) -> dict[str, Any]:
+    """智能问答。candidates 非空时会逐项覆盖。"""
     _ensure_init()
-    return _chat.process({"message": message, "history": history or []})
+    return _chat.process({
+        "message": message,
+        "history": history or [],
+        "candidates": candidates or [],
+    })
 
 
 def _map_reasons_to_rule_ids(reasons: list[str]) -> list[str]:
-    """从中文原因文本映射到标准规则 ID"""
-    mapping = [
-        ("过敏", "R_ALLERGY_KNOWN"),
+    """从中文原因文本映射到标准规则 ID（精确匹配，避免子串误触发）"""
+    # 优先级顺序：更具体的模式在前
+    patterns = [
+        ("未满 6 个月", "R_AGE_BELOW_6M_NO_COMPLEMENTARY_FOOD"),
+        ("含添加盐", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
+        ("高钠", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
+        ("含添加糖", "R_ADDED_SUGAR_CAUTION"),
+        ("窒息", "R_CHOKING_RISK_CAUTION"),
+        ("已知过敏原", "R_ALLERGY_KNOWN"),
         ("牛奶", "R_ALLERGY_MILK"),
         ("鸡蛋", "R_ALLERGY_EGG"),
         ("小麦", "R_ALLERGY_WHEAT"),
@@ -227,17 +333,15 @@ def _map_reasons_to_rule_ids(reasons: list[str]) -> list[str]:
         ("鱼类", "R_ALLERGY_FISH"),
         ("虾", "R_ALLERGY_SHELLFISH"),
         ("芝麻", "R_ALLERGY_SESAME"),
-        ("高钠", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
-        ("盐", "R_ADDED_SALT_OR_HIGH_SODIUM_CAUTION"),
-        ("添加糖", "R_ADDED_SUGAR_CAUTION"),
-        ("窒息", "R_CHOKING_RISK_CAUTION"),
+        ("配料未知", "R_INSUFFICIENT_INGREDIENT_INFO"),
+        ("信息不足", "R_INSUFFICIENT_INGREDIENT_INFO"),
+        ("质地", "R_TEXTURE_STAGE_MISMATCH"),
         ("月龄", "R_AGE_UNDER_RECOMMENDED"),
-        ("未满 6 个月", "R_AGE_BELOW_6M_NO_COMPLEMENTARY_FOOD"),
-        ("质地", "R_TEXTURE_MISMATCH_CAUTION"),
     ]
     ids = []
     for reason in reasons:
-        for keyword, rule_id in mapping:
+        for keyword, rule_id in patterns:
             if keyword in reason:
                 ids.append(rule_id)
+                break  # 每个 reason 只匹配一个规则
     return ids
