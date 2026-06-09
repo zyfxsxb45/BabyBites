@@ -99,6 +99,45 @@ function Sidebar({ profile, setProfile, onAssess }) {
           onChange={(e) => setProfile({ ...profile, notes: e.target.value })} />
       </div>
 
+      <div className="field">
+        <label>自定义忌口（非标准过敏原）</label>
+        <input value={profile.other_restrictions || ""}
+          placeholder="如：山药、芒果、菠萝…"
+          onChange={(e) => setProfile({ ...profile, other_restrictions: e.target.value })} />
+        <small style={{ color: "#bbb", fontSize: 11 }}>非标准过敏原的个人忌口，LLM 会参考</small>
+      </div>
+
+      <div className="field">
+        <label>预算偏好</label>
+        <select value={profile.budget || ""}
+          onChange={(e) => setProfile({ ...profile, budget: e.target.value })}>
+          <option value="">不指定</option>
+          <option value="low">经济实惠</option>
+          <option value="medium">中等预算</option>
+          <option value="high">无限制</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <input type="checkbox" checked={profile.prefer_homemade === true}
+            onChange={(e) => setProfile({ ...profile, prefer_homemade: e.target.checked ? true : null })} />
+          偏好自制辅食
+        </label>
+      </div>
+
+      <div className="field">
+        <label>避免食材类别</label>
+        <div className="chip-group">
+          {["red_meat","poultry","fish","seafood","eggs","legumes","grains","vegetables","fruits","nuts_seeds","dairy"].map((cat) => (
+            <span key={cat} className={`chip ${(profile.avoid_categories || []).includes(cat) ? "active" : ""}`}
+              onClick={() => toggle("avoid_categories", cat)}>
+              {cat === "red_meat" ? "红肉" : cat === "poultry" ? "禽肉" : cat === "fish" ? "鱼类" : cat === "seafood" ? "海鲜" : cat === "eggs" ? "蛋类" : cat === "legumes" ? "豆类" : cat === "grains" ? "谷物" : cat === "vegetables" ? "蔬菜" : cat === "fruits" ? "水果" : cat === "nuts_seeds" ? "坚果" : cat === "dairy" ? "乳制品" : cat}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <button className="btn-primary" onClick={onAssess}>🔍 开始评估</button>
     </aside>
   );
@@ -736,7 +775,7 @@ const inputStyle = {
 /* ================================================================
    Boss Baby 悬浮球 + 聊天浮窗
    ================================================================ */
-function BossBabyChat() {
+function BossBabyChat({ profile }) {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
@@ -764,7 +803,7 @@ function BossBabyChat() {
       const history = msgs
         .filter((m) => m.role === "assistant")
         .map((m) => ({ question: msgs[msgs.indexOf(m) - 1]?.content || "", answer: m.content }));
-      const r = await api.chat(msg, history);
+      const r = await api.chat(msg, history, profile);
       setMsgs((prev) => [...prev, { role: "assistant", content: r.answer || "抱歉，暂时无法回答。" }]);
     } catch (e) { setMsgs((prev) => [...prev, { role: "assistant", content: "网络出错了，请稍后再试。" }]); }
     setLoading(false);
@@ -994,10 +1033,14 @@ export default function App() {
     age_months: 6,
     corrected_age_months: null,
     allergies: [],
+    other_restrictions: "",
     feeding_method: "breast",
     tried_foods: [],
     notes: "",
     preterm: false,
+    budget: "",
+    prefer_homemade: null,
+    avoid_categories: [],
   });
   const [assessment, setAssessment] = useState(null);
   const [plan, setPlan] = useState(null);
@@ -1005,6 +1048,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("plan");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [useLLM, setUseLLM] = useState(false);
 
   const doAssess = async () => {
     setLoading(true);
@@ -1016,7 +1060,7 @@ export default function App() {
       if (r.can_start) {
         setActiveTab("plan"); // 评估通过后自动跳到计划 Tab
         try {
-          const planR = await api.plan(profile);
+          const planR = await api.plan({ ...profile, use_llm: useLLM });
           setPlan(planR);
         } catch (e) {
           setError("计划生成失败：" + e.message);
@@ -1034,7 +1078,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const r = await api.plan(profile);
+      const r = await api.plan({ ...profile, use_llm: useLLM });
       setPlan(r);
       setActiveTab("plan");
     } catch (e) {
@@ -1083,6 +1127,23 @@ export default function App() {
             assessment?.can_start
               ? (
                 <>
+                  {/* LLM 模式开关 + 模式标记 */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#8d6e63", fontWeight: 600 }}>
+                      <input type="checkbox" checked={useLLM} onChange={(e) => setUseLLM(e.target.checked)}
+                        style={{ accentColor: "#ff9800", width: 16, height: 16 }} />
+                      🤖 LLM 智能排菜
+                    </label>
+                    {plan?.mode && (
+                      <span style={{
+                        fontSize: 11, padding: "2px 8px", borderRadius: 10, fontWeight: 600,
+                        background: plan.mode === "llm" ? "#e8f5e9" : plan.mode === "rule" ? "#f5f5f5" : "#fff8e1",
+                        color: plan.mode === "llm" ? "#2e7d32" : plan.mode === "rule" ? "#9e9e9e" : "#e65100",
+                      }}>
+                        {plan.mode === "llm" ? "✨ AI 生成" : plan.mode === "rule" ? "📐 规则生成" : "🔄 降级规则"}
+                      </span>
+                    )}
+                  </div>
                   <WeeklyPlan data={plan} onRefresh={doPlan} />
                   <DailyFeedback plan={plan} onFeedbackSubmit={doPlan} />
                 </>
@@ -1099,7 +1160,7 @@ export default function App() {
       </main>
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <BossBabyChat />
+      <BossBabyChat profile={profile} />
     </div>
   );
 }

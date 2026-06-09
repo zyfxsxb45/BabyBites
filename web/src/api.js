@@ -30,10 +30,10 @@ export const api = {
       body: JSON.stringify({ ingredient_text: text, age_months: age }),
     }),
 
-  chat: (message, history) =>
+  chat: (message, history, current_profile) =>
     request("/api/chat", {
       method: "POST",
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({ message, history, current_profile }),
     }),
 
   feedback: {
