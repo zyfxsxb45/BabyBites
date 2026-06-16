@@ -1,0 +1,8 @@
+﻿metric,preferred_direction,n_paired_items,babybites_rate,baseline_rate,bb_only_event,baseline_only_event,discordant_pairs,test,p_value,p_holm,significant_holm_0.05
+hard_risk_recall,higher,140,0.9928571428571429,0.9071428571428571,13,1,14,Exact McNemar,0.0018310546875,0.0128173828125,True
+allergy_conflict_recall,higher,48,1.0,1.0,0,0,0,Exact McNemar,1.0,1.0,False
+under_6_block_rate,higher,48,1.0,0.8333333333333334,8,0,8,Exact McNemar,0.0078125,0.03125,True
+choking_risk_recall,higher,45,1.0,1.0,0,0,0,Exact McNemar,1.0,1.0,False
+hard_risk_false_negative_rate,lower,140,0.007142857142857143,0.09285714285714286,1,13,14,Exact McNemar,0.0018310546875,0.0128173828125,True
+over_caution_rate,lower,85,0.0,0.10588235294117647,0,9,9,Exact McNemar,0.00390625,0.01953125,True
+unknown_ingredient_safe_rate,lower,29,0.0,0.0,0,0,0,Exact McNemar,1.0,1.0,False

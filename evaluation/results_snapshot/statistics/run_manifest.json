@@ -1,0 +1,8 @@
+{
+  "source_analysis": "outputs/statistical_analysis_combined_counterfactual15/_analysis_input",
+  "candidate_base_cases": 25,
+  "candidate_extension_snapshot_cases": 52,
+  "candidate_combined_unique_cases": 77,
+  "other_tasks_unchanged": true,
+  "note": "Interim snapshot while candidate extension evaluation was still running."
+}
